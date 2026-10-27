@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Menú QR · Arepera El Buen Sabor</title>
+<meta name="description" content="Menú digital con código QR: escanea y pide desde tu mesa.">
+<meta name="theme-color" content="#0b0906">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="../vendedor/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script>
+/* =====================================================================
+   CONFIGURACIÓN DEL NEGOCIO  ·  Edita solo esta sección
+   ---------------------------------------------------------------------
+   - name / city / hours: datos que se muestran en la cabecera.
+   - whatsapp: número que recibe los pedidos, con código de país y sin
+     "+" ni espacios (Venezuela = 58). Ej: 584141234567
+   - currency: símbolo de la moneda que se muestra junto a los precios.
+   - categories: pestañas del menú (el "id" se usa en cada producto).
+   - items: tus productos. "img" puede ser una URL o una ruta local
+     (ej: "img/reina.jpg" si subes tus fotos a una carpeta img/).
+   La mesa se lee de la dirección: .../menu-qr/?mesa=4
+   ---------------------------------------------------------------------
+   ¿Quieres guardar los pedidos en tu propia base de datos (Supabase,
+   Firebase, Google Sheets…)? Busca la función saveOrder() más abajo:
+   ahí puedes enviar el pedido a tu servidor además de a WhatsApp.
+   ===================================================================== */
+const CONFIG = {
+  name: "Arepera El Buen Sabor",
+  tagline: "Sabor andino desde 1998",
+  city: "Mérida, Venezuela",
+  hours: "Lun a Dom · 7:00 am – 10:00 pm",
+  whatsapp: "584140000000",
+  currency: "$",
+  orderPrefix: "BS",
+  heroImg: "https://images.pexels.com/photos/29465174/pexels-photo-29465174.jpeg?auto=compress&cs=tinysrgb&w=900",
+  categories: [
+    { id: "arepas",    label: "Arepas" },
+    { id: "empanadas", label: "Empanadas" },
+    { id: "bebidas",   label: "Bebidas" },
+    { id: "postres",   label: "Postres" }
+  ],
+  items: [
+    { id: "reina",    cat: "arepas", name: "Reina pepiada", desc: "Pollo mechado, aguacate y mayonesa casera", price: 4.50, tag: "Favorita",
+      img: "https://images.pexels.com/photos/29496092/pexels-photo-29496092.jpeg?auto=compress&cs=tinysrgb&w=400" },
+    { id: "pabellon", cat: "arepas", name: "Pabellón", desc: "Carne mechada, caraotas negras, tajadas y queso", price: 5.50, tag: "Especial",
+      img: "https://images.pexels.com/photos/29465173/pexels-photo-29465173.jpeg?auto=compress&cs=tinysrgb&w=400" },
+    { id: "domino",   cat: "arepas", name: "Dominó", desc: "Caraotas negras con queso blanco rallado", price: 3.50,
+      img: "https://images.pexels.com/photos/29496090/pexels-photo-29496090.jpeg?auto=compress&cs=tinysrgb&w=400" },
+    { id: "catira",   cat: "arepas", name: "Catira", desc: "Pollo mechado con queso amarillo", price: 4.00,
+      img: "https://images.pexels.com/photos/29496095/pexels-photo-29496095.jpeg?auto=compress&cs=tinysrgb&w=400" },
+    { id: "pelua",    cat: "arepas", name: "Pelúa", desc: "Carne mechada con queso amarillo rallado", price: 4.50,
+      img: "https://images.pexels.com/photos/29496088/pexels-photo-29496088.jpeg?auto=compress&cs=tinysrgb&w=400" },
+
+    { id: "emp-carne",  cat: "empanadas", name: "Empanada de carne", desc: "Masa de maíz crujiente, carne molida guisada", price: 2.00,
+      img: "https://images.pexels.com/photos/28902899/pexels-photo-28902899.jpeg?auto=compress&cs=tinysrgb&w=400" },
+    { id: "emp-queso",  cat: "empanadas", name: "Empanada de queso", desc: "Rellena de queso blanco que se derrite", price: 1.80,
+      img: "https://images.pexels.com/photos/12469922/pexels-photo-12469922.jpeg?auto=compress&cs=tinysrgb&w=400" },
+    { id: "emp-pollo",  cat: "empanadas", name: "Empanada de pollo", desc: "Pollo guisado con ají dulce", price: 2.00,
+      img: "https://images.pexels.com/photos/23526715/pexels-photo-23526715.jpeg?auto=compress&cs=tinysrgb&w=400" },
+    { id: "emp-pab",    cat: "empanadas", name: "Empanada pabellón", desc: "Carne, caraotas, tajada y queso", price: 2.50, tag: "Nueva",
+      img: "https://images.pexels.com/photos/37025258/pexels-photo-37025258.jpeg?auto=compress&cs=tinysrgb&w=400" },
+    { id: "tequenos",   cat: "empanadas", name: "Tequeños (6 und)", desc: "Palitos de queso con salsa de la casa", price: 3.00,
+      img: "https://images.pexels.com/photos/8305406/pexels-photo-8305406.jpeg?auto=compress&cs=tinysrgb&w=400" },
+
+    { id: "papelon",  cat: "bebidas", name: "Papelón con limón", desc: "Bien frío, endulzado con papelón", price: 1.50, tag: "Clásico",
+      img: "https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=400&q=70&auto=format&fit=crop" },
+    { id: "parchita", cat: "bebidas", name: "Jugo de parchita", desc: "Natural, hecho al momento", price: 2.00,
+      img: "https://images.unsplash.com/photo-1523371054106-bbf80586c38c?w=400&q=70&auto=format&fit=crop" },
+    { id: "marron",   cat: "bebidas", name: "Café marrón", desc: "Café andino con leche espumada", price: 1.00,
+      img: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&q=70&auto=format&fit=crop" },
+
+    { id: "quesillo", cat: "postres", name: "Quesillo", desc: "Flan venezolano con caramelo", price: 2.50, tag: "Casero",
+      img: "../vendedor/img/quesillo.jpg" },
+    { id: "torta",    cat: "postres", name: "Torta de chocolate", desc: "Húmeda, con ganache de cacao venezolano", price: 3.00,
+      img: "../vendedor/img/torta.jpg" },
+    { id: "marquesa", cat: "postres", name: "Marquesa de chocolate", desc: "Capas de galleta, crema y chocolate", price: 3.00,
+      img: "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=400&q=70&auto=format&fit=crop" }
+  ]
+};
+</script>
+<style>
+:root{--bg:#0b0906;--card:#15110b;--line:rgba(212,175,55,.28);--line2:rgba(212,175,55,.55);--gold:#d4af37;--gold2:#f3d97a;--goldg:linear-gradient(135deg,#f7e48c 0%,#d4af37 48%,#a9851f 100%);--txt:#f5edd9;--mut:#a99d82}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg)}
+body{color:var(--txt);font-family:'Poppins',system-ui,sans-serif;font-size:15px;line-height:1.45;max-width:520px;margin:0 auto;min-height:100vh;padding-bottom:110px;
+  background:radial-gradient(120% 50% at 50% 0%,rgba(212,175,55,.10),transparent 60%),var(--bg)}
+.serif{font-family:'Playfair Display',Georgia,serif}
+.gold{background:var(--goldg);-webkit-background-clip:text;background-clip:text;color:transparent}
+button{font-family:inherit;cursor:pointer}
+img{display:block}
+.hero{position:relative;height:210px;overflow:hidden;border-radius:0 0 26px 26px}
+.hero img{width:100%;height:100%;object-fit:cover;filter:brightness(.55) saturate(1.05)}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,9,6,.2) 0%,rgba(11,9,6,.25) 40%,var(--bg) 100%)}
+.hero-in{position:absolute;inset:auto 18px 16px 18px;z-index:2}
+.top{position:absolute;top:14px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:center;z-index:3}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:.3px}
+.pill.dark{background:rgba(11,9,6,.65);border:1px solid var(--line2);color:var(--gold2);backdrop-filter:blur(6px)}
+.pill.goldp{background:var(--goldg);color:#1b1305}
+.hero h1{font-size:30px;line-height:1.08;font-weight:800}
+.hero p{color:#d9cfb6;font-size:13px;margin-top:4px}
+.qr-card{margin:16px 16px 0;display:flex;gap:14px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(160deg,#1a140b,#100c07)}
+.qr-box{flex:0 0 auto;background:#fff;padding:7px;border-radius:12px;border:2px solid var(--gold);width:96px;height:96px;display:flex;align-items:center;justify-content:center}
+.qr-box img,.qr-box canvas{width:78px!important;height:78px!important}
+.qr-card h2{font-size:18px;line-height:1.2}
+.qr-card p{font-size:12.5px;color:var(--mut);margin-top:4px}
+.qr-card .hrs{margin-top:8px;font-size:11.5px;color:var(--gold2)}
+.tabs{position:sticky;top:0;z-index:20;display:flex;gap:8px;overflow-x:auto;padding:14px 16px 12px;background:linear-gradient(180deg,var(--bg) 80%,rgba(11,9,6,0));scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:#120e09;color:var(--txt);font-size:13.5px;font-weight:500}
+.tab.on{background:var(--goldg);color:#1b1305;border-color:transparent;font-weight:600}
+.sec{padding:4px 16px 0}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;margin:6px 2px 10px}
+.sec-h h3{font-size:22px}
+.sec-h span{font-size:12px;color:var(--mut)}
+.item{display:flex;gap:12px;padding:10px;border:1px solid var(--line);border-radius:18px;background:var(--card);margin-bottom:10px;align-items:center}
+.item .ph{position:relative;flex:0 0 86px;height:86px;border-radius:14px;overflow:hidden;background:#221a10}
+.item .ph img{width:100%;height:100%;object-fit:cover}
+.tag{position:absolute;top:6px;left:6px;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:3px 7px;border-radius:999px;background:var(--goldg);color:#1b1305}
+.item .info{flex:1;min-width:0}
+.item h4{font-size:15.5px;font-weight:600;line-height:1.25}
+.item .d{font-size:12px;color:var(--mut);margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.item .row{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.price{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--gold2)}
+.add{width:36px;height:36px;border-radius:50%;border:0;background:var(--goldg);color:#1b1305;font-size:22px;font-weight:600;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(212,175,55,.25)}
+.step{display:flex;align-items:center;gap:8px;background:#0e0b07;border:1px solid var(--line2);border-radius:999px;padding:3px}
+.step button{width:30px;height:30px;border-radius:50%;border:0;background:#241b0f;color:var(--gold2);font-size:18px;font-weight:600;line-height:1}
+.step button.p{background:var(--goldg);color:#1b1305}
+.step b{min-width:16px;text-align:center;font-size:14px}
+.bar{position:fixed;left:50%;transform:translateX(-50%) translateY(140%);bottom:14px;width:calc(100% - 28px);max-width:492px;z-index:40;transition:transform .3s ease}
+.bar.show{transform:translateX(-50%) translateY(0)}
+.bar button{width:100%;border:0;border-radius:999px;background:var(--goldg);color:#1b1305;padding:15px 20px;font-size:15.5px;font-weight:700;display:flex;justify-content:space-between;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.6),0 0 0 1px rgba(255,235,160,.35) inset}
+.bar .n{background:#1b1305;color:var(--gold2);border-radius:999px;padding:2px 10px;font-size:13px;margin-left:6px}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:50;opacity:0;pointer-events:none;transition:opacity .25s}
+.ov.show{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,105%);width:100%;max-width:520px;max-height:88vh;overflow:auto;z-index:60;background:#120e08;border:1px solid var(--line2);border-bottom:0;border-radius:26px 26px 0 0;padding:10px 18px 22px;transition:transform .3s ease}
+.sheet.show{transform:translate(-50%,0)}
+.grab{width:44px;height:4px;border-radius:4px;background:#3a2f1c;margin:4px auto 12px}
+.sheet h2{font-size:24px}
+.sheet .sub{font-size:12.5px;color:var(--mut);margin-bottom:12px}
+.line{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed rgba(212,175,55,.18)}
+.line img{width:48px;height:48px;border-radius:12px;object-fit:cover}
+.line .nm{flex:1;min-width:0;font-size:14px;font-weight:500}
+.line .nm small{display:block;color:var(--mut);font-weight:400;font-size:12px}
+.line .lt{font-weight:600;color:var(--gold2);min-width:58px;text-align:right}
+textarea{width:100%;margin-top:14px;background:#0b0906;border:1px solid var(--line);border-radius:14px;color:var(--txt);padding:12px;font:inherit;font-size:13.5px;resize:none}
+textarea:focus{outline:none;border-color:var(--gold)}
+.tot{display:flex;justify-content:space-between;align-items:center;margin:16px 2px}
+.tot span{color:var(--mut)}
+.tot b{font-family:'Playfair Display',serif;font-size:28px}
+.btn{width:100%;border:0;border-radius:999px;background:var(--goldg);color:#1b1305;padding:15px;font-size:15.5px;font-weight:700;display:flex;gap:8px;align-items:center;justify-content:center}
+.btn.ghost{background:transparent;color:var(--gold2);border:1px solid var(--line2);margin-top:10px}
+.btn svg{width:20px;height:20px}
+.empty{text-align:center;color:var(--mut);padding:30px 0}
+.done{position:fixed;inset:0;z-index:80;background:radial-gradient(90% 60% at 50% 20%,rgba(212,175,55,.16),transparent 65%),var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center}
+.done.show{display:flex}
+.check{width:92px;height:92px;border-radius:50%;background:var(--goldg);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 10px rgba(212,175,55,.12),0 0 0 22px rgba(212,175,55,.06);animation:pop .5s ease}
+@keyframes pop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+.done h2{font-size:32px;margin-top:28px}
+.done p{color:var(--mut);margin-top:6px;font-size:14px}
+.ticket{margin:22px 0 18px;width:100%;max-width:360px;border:1px solid var(--line2);border-radius:20px;padding:16px 18px;background:#130f09;text-align:left}
+.ticket .num{font-family:'Playfair Display',serif;font-size:26px;color:var(--gold2)}
+.ticket .r{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:#ddd2b8}
+.ticket hr{border:0;border-top:1px dashed rgba(212,175,55,.3);margin:10px 0}
+.foot{text-align:center;color:#6f664f;font-size:11.5px;margin:26px 0 10px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <img id="heroImg" alt="Arepas recién hechas">
+  <div class="top">
+    <span class="pill dark" id="mesaBadge">🍽️ Mesa —</span>
+    <span class="pill goldp">Menú digital</span>
+  </div>
+  <div class="hero-in">
+    <h1 class="serif" id="bizName"></h1>
+    <p id="bizSub"></p>
+  </div>
+</header>
+
+<section class="qr-card">
+  <div class="qr-box" id="qr" aria-label="Código QR del menú"></div>
+  <div>
+    <h2 class="serif">Escanea y pide <span class="gold">desde tu mesa</span></h2>
+    <p>Elige tus platos, revisa tu pedido y envíalo directo a la cocina por WhatsApp.</p>
+    <div class="hrs" id="hrs"></div>
+  </div>
+</section>
+
+<nav class="tabs" id="tabs"></nav>
+<main id="menu"></main>
+<p class="foot">Menú demo · Hecho con IA por DUNIGSHOP</p>
+
+<div class="bar" id="bar"><button id="openCart"><span>Ver pedido <span class="n" id="barN">0</span></span><span id="barT">$0.00</span></button></div>
+
+<div class="ov" id="ov"></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true">
+  <div class="grab"></div>
+  <h2 class="serif" id="sheetTitle">Tu pedido</h2>
+  <p class="sub">Revisa las cantidades antes de enviar</p>
+  <div id="lines"></div>
+  <textarea id="note" rows="2" placeholder="Notas para la cocina (ej: sin cebolla, salsa aparte)"></textarea>
+  <div class="tot"><span>Total</span><b class="gold" id="total">$0.00</b></div>
+  <button class="btn" id="send"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.6-.3.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.1 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.6-.1 1.2Z"/></svg>Enviar pedido por WhatsApp</button>
+  <button class="btn ghost" id="closeCart">Seguir pidiendo</button>
+</section>
+
+<section class="done" id="done">
+  <div class="check"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#1b1305" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+  <h2 class="serif">¡Pedido <span class="gold">recibido!</span></h2>
+  <p>La cocina ya está preparando tu pedido.</p>
+  <div class="ticket" id="ticket"></div>
+  <button class="btn" id="again" style="max-width:360px">Volver al menú</button>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const params = new URLSearchParams(location.search);
+  const mesa = (params.get("mesa") || "1").replace(/[^0-9A-Za-z-]/g,"").slice(0,6) || "1";
+  const KEY = "menuqr_cart_" + mesa;
+  const money = n => CONFIG.currency + Number(n).toFixed(2);
+  let cart = {};
+  try { cart = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch(e) { cart = {}; }
+  let active = CONFIG.categories[0].id;
+
+  // Cabecera
+  $("#heroImg").src = CONFIG.heroImg;
+  $("#bizName").textContent = CONFIG.name;
+  $("#bizSub").textContent = CONFIG.tagline + " · " + CONFIG.city;
+  $("#hrs").textContent = "🕒 " + CONFIG.hours;
+  $("#mesaBadge").textContent = "🍽️ Mesa " + mesa;
+  $("#sheetTitle").textContent = "Tu pedido · Mesa " + mesa;
+  document.title = "Menú QR · " + CONFIG.name;
+
+  // QR con la dirección de esta página (incluye la mesa)
+  try {
+    if (window.QRCode) new QRCode($("#qr"), { text: location.href, width: 160, height: 160, colorDark: "#0b0906", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
+  } catch(e) { $("#qr").style.display = "none"; }
+
+  // Pestañas
+  const tabs = $("#tabs");
+  CONFIG.categories.forEach(c => {
+    const b = document.createElement("button");
+    b.className = "tab"; b.textContent = c.label; b.dataset.id = c.id;
+    b.onclick = () => { active = c.id; renderTabs(); document.getElementById("sec-" + c.id).scrollIntoView({behavior:"smooth", block:"start"}); };
+    tabs.appendChild(b);
+  });
+  function renderTabs(){ tabs.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.id === active)); }
+
+  // Menú
+  function renderMenu(){
+    const m = $("#menu"); m.innerHTML = "";
+    CONFIG.categories.forEach(c => {
+      const items = CONFIG.items.filter(i => i.cat === c.id);
+      const s = document.createElement("section"); s.className = "sec"; s.id = "sec-" + c.id;
+      s.style.scrollMarginTop = "64px";
+      s.innerHTML = `<div class="sec-h"><h3 class="serif">${c.label}</h3><span>${items.length} opciones</span></div>`;
+      items.forEach(i => {
+        const q = cart[i.id] || 0;
+        const el = document.createElement("article"); el.className = "item";
+        el.innerHTML = `<div class="ph"><img loading="lazy" src="${i.img}" alt="${i.name}">${i.tag ? `<span class="tag">${i.tag}</span>` : ""}</div>
+          <div class="info"><h4>${i.name}</h4><div class="d">${i.desc}</div>
+          <div class="row"><span class="price">${money(i.price)}</span>${q ? `<div class="step"><button data-m="${i.id}" aria-label="Quitar">−</button><b>${q}</b><button class="p" data-p="${i.id}" aria-label="Agregar">+</button></div>` : `<button class="add" data-p="${i.id}" aria-label="Agregar ${i.name}">+</button>`}</div></div>`;
+        s.appendChild(el);
+      });
+      m.appendChild(s);
+    });
+    if (window.__io) { window.__io.disconnect(); m.querySelectorAll(".sec").forEach(x => window.__io.observe(x)); }
+  }
+  document.addEventListener("click", e => {
+    const p = e.target.closest("[data-p]"), mi = e.target.closest("[data-m]");
+    if (p) change(p.dataset.p, 1); else if (mi) change(mi.dataset.m, -1);
+  });
+  function change(id, d){
+    cart[id] = Math.max(0, (cart[id] || 0) + d);
+    if (!cart[id]) delete cart[id];
+    localStorage.setItem(KEY, JSON.stringify(cart));
+    renderMenu(); renderBar(); if ($("#sheet").classList.contains("show")) renderSheet();
+  }
+  const lines = () => Object.keys(cart).map(id => ({ item: CONFIG.items.find(i => i.id === id), q: cart[id] })).filter(l => l.item);
+  const count = () => lines().reduce((a,l) => a + l.q, 0);
+  const total = () => lines().reduce((a,l) => a + l.q * l.item.price, 0);
+
+  function renderBar(){
+    $("#barN").textContent = count(); $("#barT").textContent = money(total());
+    $("#bar").classList.toggle("show", count() > 0);
+  }
+  function renderSheet(){
+    const L = lines(), box = $("#lines");
+    box.innerHTML = L.length ? "" : `<p class="empty">Tu pedido está vacío.</p>`;
+    L.forEach(l => {
+      const d = document.createElement("div"); d.className = "line";
+      d.innerHTML = `<img src="${l.item.img}" alt=""><div class="nm">${l.item.name}<small>${money(l.item.price)} c/u</small></div>
+        <div class="step"><button data-m="${l.item.id}">−</button><b>${l.q}</b><button class="p" data-p="${l.item.id}">+</button></div>
+        <div class="lt">${money(l.q * l.item.price)}</div>`;
+      box.appendChild(d);
+    });
+    $("#total").textContent = money(total());
+    $("#send").disabled = !L.length; $("#send").style.opacity = L.length ? 1 : .5;
+  }
+  function openSheet(){ renderSheet(); $("#ov").classList.add("show"); $("#sheet").classList.add("show"); }
+  function closeSheet(){ $("#ov").classList.remove("show"); $("#sheet").classList.remove("show"); }
+  $("#openCart").onclick = openSheet; $("#closeCart").onclick = closeSheet; $("#ov").onclick = closeSheet;
+
+  // Número de pedido correlativo (guardado en este teléfono)
+  function nextOrderNumber(){
+    const n = (parseInt(localStorage.getItem("menuqr_seq") || "1040", 10) + 1);
+    localStorage.setItem("menuqr_seq", n); return CONFIG.orderPrefix + "-" + n;
+  }
+
+  // 👉 Conecta aquí tu base de datos si lo deseas (fetch a tu API / Supabase).
+  function saveOrder(order){
+    const hist = JSON.parse(localStorage.getItem("menuqr_orders") || "[]");
+    hist.unshift(order); localStorage.setItem("menuqr_orders", JSON.stringify(hist.slice(0,50)));
+  }
+
+  $("#send").onclick = () => {
+    const L = lines(); if (!L.length) return;
+    const num = nextOrderNumber(), note = $("#note").value.trim();
+    const hora = new Date().toLocaleTimeString("es-VE", { hour: "numeric", minute: "2-digit" });
+    let msg = `🫓 *Nuevo pedido · ${CONFIG.name}*\n`;
+    msg += `🧾 Pedido: *${num}*\n🍽️ Mesa: *${mesa}*\n🕒 Hora: ${hora}\n\n`;
+    L.forEach(l => { msg += `• ${l.q} x ${l.item.name} — ${money(l.q * l.item.price)}\n`; });
+    msg += `\n💰 *Total: ${money(total())}*`;
+    if (note) msg += `\n📝 Notas: ${note}`;
+    msg += `\n\n_Enviado desde el menú QR_`;
+    saveOrder({ num, mesa, items: L.map(l => ({ id: l.item.id, q: l.q })), total: total(), note, at: Date.now() });
+    window.open(`https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`, "_blank");
+
+    $("#ticket").innerHTML = `<div class="r"><span>Pedido</span><span>Mesa ${mesa}</span></div><div class="num">#${num}</div><hr>` +
+      L.map(l => `<div class="r"><span>${l.q} × ${l.item.name}</span><span>${money(l.q * l.item.price)}</span></div>`).join("") +
+      `<hr><div class="r" style="font-weight:600;color:#f3d97a"><span>Total</span><span>${money(total())}</span></div>`;
+    cart = {}; localStorage.setItem(KEY, "{}"); $("#note").value = "";
+    closeSheet(); renderMenu(); renderBar();
+    $("#done").classList.add("show");
+  };
+  $("#again").onclick = () => { $("#done").classList.remove("show"); window.scrollTo({top:0}); };
+
+  // Resalta la pestaña según la sección visible
+  const io = new IntersectionObserver(es => { es.forEach(en => { if (en.isIntersecting) { active = en.target.id.replace("sec-",""); renderTabs(); } }); }, { rootMargin: "-40% 0px -55% 0px" });
+  window.__io = io;
+  renderTabs(); renderMenu(); renderBar();
+})();
+</script>
+</body>
+</html>

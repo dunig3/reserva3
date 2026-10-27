@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>¿A cuánto vendo mi torta? · Calculadora para reposteras</title>
+<meta name="description" content="Calcula el precio de venta de tus tortas: costos, margen de ganancia y precio por porción.">
+<meta name="theme-color" content="#0b0906">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="../vendedor/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script>
+/* =====================================================================
+   CONFIGURACIÓN  ·  Edita solo esta sección
+   ---------------------------------------------------------------------
+   - brand: nombre que aparece arriba y en el mensaje compartido.
+   - currency: símbolo de moneda ("$", "Bs.", "€"…).
+   - defaultRecipe: la receta de ejemplo con la que abre la calculadora.
+   - defaultMargin: margen de ganancia inicial (%). maxMargin: tope del
+     deslizador. defaultPortions: porciones iniciales.
+   - roundTo: redondea el precio por porción hacia arriba (ej: 0.25).
+   Las recetas se guardan en este teléfono (localStorage).
+   ---------------------------------------------------------------------
+   ¿Quieres guardar las recetas en la nube y verlas desde cualquier
+   equipo? Conecta tu propia base de datos (Supabase, Firebase…) en
+   las funciones loadRecipes() y saveRecipes() de abajo.
+   ===================================================================== */
+const CONFIG = {
+  brand: "Dulce Cálculo",
+  currency: "$",
+  heroImg: "../vendedor/img/torta.jpg",
+  defaultRecipe: {
+    name: "Torta de chocolate",
+    ingredients: [
+      { name: "Harina de trigo (1kg)", cost: 1.20 },
+      { name: "Azúcar (1kg)",          cost: 0.90 },
+      { name: "Huevos (6 und)",        cost: 1.80 },
+      { name: "Mantequilla (250g)",    cost: 2.50 },
+      { name: "Chocolate en polvo",    cost: 3.00 },
+      { name: "Leche (1L)",            cost: 1.10 },
+      { name: "Caja y base",           cost: 1.50 },
+      { name: "Gas y electricidad",    cost: 0.80 }
+    ]
+  },
+  defaultMargin: 60,
+  maxMargin: 150,
+  defaultPortions: 12,
+  roundTo: 0.05
+};
+</script>
+<style>
+:root{--bg:#0b0906;--card:#15110b;--line:rgba(212,175,55,.28);--line2:rgba(212,175,55,.6);--gold:#d4af37;--gold2:#f3d97a;--goldg:linear-gradient(135deg,#f7e48c 0%,#d4af37 48%,#a9851f 100%);--txt:#f5edd9;--mut:#a99d82}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg)}
+body{color:var(--txt);font-family:'Poppins',system-ui,sans-serif;font-size:15px;line-height:1.45;max-width:520px;margin:0 auto;min-height:100vh;padding-bottom:40px;
+  background:radial-gradient(120% 40% at 50% 0%,rgba(212,175,55,.10),transparent 60%),var(--bg)}
+.serif{font-family:'Playfair Display',Georgia,serif}
+.gold{background:var(--goldg);-webkit-background-clip:text;background-clip:text;color:transparent}
+button,input{font-family:inherit}
+button{cursor:pointer}
+img{display:block}
+input:focus{outline:none;border-color:var(--gold)!important}
+.hero{position:relative;height:200px;overflow:hidden;border-radius:0 0 26px 26px}
+.hero img{width:100%;height:100%;object-fit:cover;object-position:center 40%;filter:brightness(.55)}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,9,6,.15),var(--bg) 100%)}
+.hero-in{position:absolute;left:18px;right:18px;bottom:16px;z-index:2}
+.pill{display:inline-flex;gap:6px;align-items:center;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:600;background:rgba(11,9,6,.6);border:1px solid var(--line2);color:var(--gold2)}
+.hero h1{font-size:30px;line-height:1.08;font-weight:800;margin-top:10px}
+.hero h1 em{font-style:italic;font-weight:600}
+.hero p{font-size:12.5px;color:#d8ceb4;margin-top:4px}
+.wrap{padding:0 16px}
+.card{border:1px solid var(--line);border-radius:20px;background:var(--card);padding:16px;margin-top:14px}
+.card h2{font-size:19px;display:flex;align-items:center;justify-content:space-between}
+.card h2 small{font-family:'Poppins';font-size:12px;color:var(--mut);font-weight:400}
+.lbl{display:block;font-size:12px;color:var(--mut);margin:0 0 6px 4px}
+.inp{width:100%;background:#0f0c08;border:1px solid var(--line);border-radius:14px;padding:12px 14px;color:var(--txt);font-size:15px}
+.ing{display:flex;gap:8px;align-items:center;margin-top:8px}
+.ing .nm{flex:1;min-width:0;background:#0f0c08;border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--txt);font-size:14px}
+.ing .cw{position:relative;flex:0 0 92px}
+.ing .cw span{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gold);font-size:13px;pointer-events:none}
+.ing .cw input{width:100%;background:#0f0c08;border:1px solid var(--line);border-radius:12px;padding:10px 8px 10px 24px;color:var(--gold2);font-size:14px;font-weight:600;text-align:right}
+.ing .rm{flex:0 0 34px;height:34px;border-radius:50%;border:1px solid rgba(212,175,55,.25);background:transparent;color:#b98f8f;font-size:18px;line-height:1}
+.add{margin-top:12px;width:100%;border:1px dashed var(--line2);background:rgba(212,175,55,.05);color:var(--gold2);border-radius:14px;padding:11px;font-size:14px;font-weight:600}
+.subt{display:flex;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px dashed rgba(212,175,55,.25);font-size:14px;color:var(--mut)}
+.subt b{color:var(--txt)}
+.mrg{display:flex;justify-content:space-between;align-items:baseline}
+.mrg b{font-family:'Playfair Display',serif;font-size:30px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:8px;margin:14px 0 6px;background:linear-gradient(90deg,#d4af37 var(--p,40%),#2a2114 var(--p,40%))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--goldg);border:3px solid #0b0906;box-shadow:0 0 0 1px var(--gold),0 4px 12px rgba(0,0,0,.5)}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#d4af37;border:3px solid #0b0906}
+.ticks{display:flex;justify-content:space-between;font-size:11px;color:var(--mut)}
+.presets{display:flex;gap:6px;margin-top:10px}
+.presets button{flex:1;border:1px solid var(--line);background:transparent;color:var(--txt);border-radius:999px;padding:6px 0;font-size:12px}
+.presets button.on{border-color:var(--gold);color:var(--gold2);background:rgba(212,175,55,.12)}
+.stepper{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.stepper button{width:46px;height:46px;border-radius:50%;border:1px solid var(--line2);background:#1c150c;color:var(--gold2);font-size:22px}
+.stepper .v{text-align:center}
+.stepper .v b{font-family:'Playfair Display',serif;font-size:34px;display:block;line-height:1}
+.stepper .v small{color:var(--mut);font-size:12px}
+.result{margin-top:16px;border-radius:24px;padding:20px 18px;text-align:center;background:radial-gradient(120% 90% at 50% 0%,rgba(247,228,140,.18),transparent 60%),linear-gradient(160deg,#1d160b,#0f0b06);border:1.5px solid var(--gold);box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.result .k{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gold2)}
+.result .big{font-family:'Playfair Display',serif;font-size:56px;font-weight:800;line-height:1.05;margin:6px 0 2px}
+.result .per{font-size:13px;color:var(--mut)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+.stat{border:1px solid var(--line);border-radius:14px;padding:10px 6px;background:rgba(11,9,6,.55)}
+.stat small{display:block;font-size:10.5px;color:var(--mut);line-height:1.25}
+.stat b{font-size:16px;display:block;margin-top:4px}
+.stat.g b{color:var(--gold2)}
+.btns{display:flex;gap:8px;margin-top:14px}
+.btn{flex:1;border:0;border-radius:999px;background:var(--goldg);color:#1b1305;padding:14px 10px;font-size:14.5px;font-weight:700;display:flex;gap:7px;align-items:center;justify-content:center}
+.btn.ghost{background:transparent;color:var(--gold2);border:1px solid var(--line2)}
+.btn svg{width:18px;height:18px}
+.saved .it{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed rgba(212,175,55,.18)}
+.saved .it:last-child{border-bottom:0}
+.saved .it .t{flex:1;min-width:0}
+.saved .it .t b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.saved .it .t small{color:var(--mut);font-size:12px}
+.saved .it button{border:1px solid var(--line2);background:transparent;color:var(--gold2);border-radius:999px;padding:6px 12px;font-size:12px}
+.saved .it button.d{border-color:rgba(212,175,55,.2);color:#b98f8f;padding:6px 10px}
+.saved .none{color:var(--mut);font-size:13px;margin-top:8px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,40px);opacity:0;background:var(--goldg);color:#1b1305;font-weight:600;font-size:13.5px;padding:10px 18px;border-radius:999px;transition:.3s;z-index:90;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.tip{font-size:12px;color:var(--mut);margin-top:10px;text-align:center}
+.foot{text-align:center;color:#6f664f;font-size:11.5px;margin:26px 0 0}
+</style>
+</head>
+<body>
+<header class="hero">
+  <img id="heroImg" alt="Torta de chocolate">
+  <div class="hero-in">
+    <span class="pill" id="brand">🎂 Calculadora para reposteras</span>
+    <h1 class="serif">¿A cuánto vendo <em class="gold">mi torta?</em></h1>
+    <p>Suma tus costos, elige tu ganancia y obtén el precio justo por porción.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="card">
+    <label class="lbl" for="rname">Nombre de la receta</label>
+    <input class="inp" id="rname" placeholder="Ej: Torta tres leches">
+  </section>
+
+  <section class="card">
+    <h2 class="serif">Ingredientes y costos <small id="ingCount"></small></h2>
+    <div id="ings"></div>
+    <button class="add" id="addIng">+ Agregar ingrediente</button>
+    <div class="subt"><span>Costo total de la torta</span><b id="subt">$0.00</b></div>
+  </section>
+
+  <section class="card">
+    <div class="mrg"><h2 class="serif">Margen de ganancia</h2><b class="gold" id="mv">60%</b></div>
+    <input type="range" id="margin" min="0" max="150" step="5" aria-label="Margen de ganancia">
+    <div class="ticks"><span>0%</span><span>50%</span><span>100%</span><span id="maxT">150%</span></div>
+    <div class="presets" id="presets"><button data-v="30">30%</button><button data-v="50">50%</button><button data-v="80">80%</button><button data-v="100">100%</button></div>
+  </section>
+
+  <section class="card">
+    <h2 class="serif">Porciones</h2>
+    <div class="stepper"><button id="pm" aria-label="Menos porciones">−</button><div class="v"><b id="pv">12</b><small>porciones por torta</small></div><button id="pp" aria-label="Más porciones">+</button></div>
+  </section>
+
+  <section class="result">
+    <div class="k">Precio sugerido por porción</div>
+    <div class="big gold" id="perPortion">$0.00</div>
+    <div class="per" id="perCost">Costo por porción: $0.00</div>
+    <div class="stats">
+      <div class="stat"><small>Costo total</small><b id="sCost">$0</b></div>
+      <div class="stat g"><small>Ganancia por torta</small><b id="sProfit">$0</b></div>
+      <div class="stat"><small>Precio total de la torta</small><b id="sTotal">$0</b></div>
+    </div>
+    <div class="btns">
+      <button class="btn ghost" id="save">💾 Guardar</button>
+      <button class="btn" id="share"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.6-.3.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.1 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.6-.1 1.2Z"/></svg>Compartir</button>
+    </div>
+  </section>
+  <p class="tip">💡 Incluye empaque, gas, luz y tu tiempo para no perder dinero.</p>
+
+  <section class="card saved">
+    <h2 class="serif">Mis recetas guardadas <small id="savedN"></small></h2>
+    <div id="savedList"></div>
+    <button class="add" id="newR" style="margin-top:12px">+ Nueva receta en blanco</button>
+  </section>
+  <p class="foot">Calculadora demo · Hecha con IA por DUNIGSHOP</p>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const C = CONFIG.currency;
+  const money = n => C + (isFinite(n) ? n : 0).toFixed(2);
+  const KEY = "reposteria_recipes", DRAFT = "reposteria_draft";
+  // 👉 Base de datos propia: cambia estas funciones por llamadas a tu API.
+  function loadRecipes(){ try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch(e) { return []; } }
+  function saveRecipes(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
+
+  const fresh = () => ({ id: null, name: CONFIG.defaultRecipe.name, ingredients: CONFIG.defaultRecipe.ingredients.map(i => ({...i})), margin: CONFIG.defaultMargin, portions: CONFIG.defaultPortions });
+  let r; try { r = JSON.parse(localStorage.getItem(DRAFT) || "null") || fresh(); } catch(e) { r = fresh(); }
+
+  $("#heroImg").src = CONFIG.heroImg;
+  $("#margin").max = CONFIG.maxMargin; $("#maxT").textContent = CONFIG.maxMargin + "%";
+
+  const esc = s => String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+  function renderIngs(){
+    const box = $("#ings");
+    box.innerHTML = r.ingredients.map((i, k) => `<div class="ing">
+      <input class="nm" data-k="${k}" data-f="name" value="${esc(i.name)}" placeholder="Ingrediente">
+      <div class="cw"><span>${C}</span><input data-k="${k}" data-f="cost" type="number" inputmode="decimal" min="0" step="0.05" value="${Number(i.cost) ? Number(i.cost).toFixed(2) : ""}" placeholder="0.00"></div>
+      <button class="rm" data-rm="${k}" aria-label="Eliminar ${esc(i.name)}">×</button></div>`).join("");
+    box.querySelectorAll("input").forEach(inp => inp.addEventListener("input", e => {
+      const k = +e.target.dataset.k, f = e.target.dataset.f;
+      r.ingredients[k][f] = f === "cost" ? parseFloat(e.target.value.replace(",", ".")) || 0 : e.target.value;
+      calc();
+    }));
+    box.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { r.ingredients.splice(+b.dataset.rm, 1); renderIngs(); calc(); });
+    $("#ingCount").textContent = r.ingredients.length + " items";
+  }
+
+  function numbers(){
+    const cost = r.ingredients.reduce((a, i) => a + (Number(i.cost) || 0), 0);
+    const raw = cost * (1 + r.margin / 100);
+    const step = CONFIG.roundTo || 0.01;
+    const per = r.portions ? Math.ceil((raw / r.portions) / step - 1e-9) * step : 0;
+    const total = per * r.portions; // precio de la torta = porción redondeada × porciones
+    return { cost, total, profit: total - cost, per, perCost: r.portions ? cost / r.portions : 0 };
+  }
+
+  function calc(){
+    const n = numbers();
+    $("#subt").textContent = money(n.cost);
+    $("#mv").textContent = r.margin + "%";
+    const m = $("#margin"); m.value = r.margin; m.style.setProperty("--p", (r.margin / CONFIG.maxMargin * 100) + "%");
+    $("#presets").querySelectorAll("button").forEach(b => b.classList.toggle("on", +b.dataset.v === r.margin));
+    $("#pv").textContent = r.portions;
+    $("#perPortion").textContent = money(n.per);
+    $("#perCost").textContent = "Costo por porción: " + money(n.perCost);
+    $("#sCost").textContent = money(n.cost);
+    $("#sProfit").textContent = money(n.profit);
+    $("#sTotal").textContent = money(n.total);
+    localStorage.setItem(DRAFT, JSON.stringify(r));
+  }
+
+  function renderSaved(){
+    const list = loadRecipes(), box = $("#savedList");
+    $("#savedN").textContent = list.length ? list.length + "" : "";
+    if (!list.length) { box.innerHTML = `<p class="none">Aún no has guardado recetas. Toca “Guardar receta” para tenerlas siempre a mano.</p>`; return; }
+    box.innerHTML = list.map(x => {
+      const step = CONFIG.roundTo || 0.01, cost = x.ingredients.reduce((a,i) => a + (Number(i.cost)||0), 0), per = Math.ceil(cost * (1 + x.margin/100) / x.portions / step - 1e-9) * step;
+      return `<div class="it"><div class="t"><b>${esc(x.name)}</b><small>${x.portions} porciones · ${x.margin}% · ${money(per)} c/u</small></div>
+        <button data-open="${x.id}">Abrir</button><button class="d" data-del="${x.id}" aria-label="Borrar">🗑</button></div>`;
+    }).join("");
+    box.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { const x = loadRecipes().find(y => y.id === b.dataset.open); if (x) { r = JSON.parse(JSON.stringify(x)); load(); window.scrollTo({top:0, behavior:"smooth"}); toast("Receta abierta"); } });
+    box.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { saveRecipes(loadRecipes().filter(y => y.id !== b.dataset.del)); renderSaved(); toast("Receta eliminada"); });
+  }
+
+  let tt; function toast(t){ const el = $("#toast"); el.textContent = t; el.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => el.classList.remove("show"), 1800); }
+
+  function load(){ $("#rname").value = r.name || ""; renderIngs(); calc(); }
+
+  $("#rname").addEventListener("input", e => { r.name = e.target.value; calc(); });
+  $("#addIng").onclick = () => { r.ingredients.push({ name: "", cost: 0 }); renderIngs(); calc(); const ins = $("#ings").querySelectorAll(".nm"); ins[ins.length-1].focus(); };
+  $("#margin").addEventListener("input", e => { r.margin = +e.target.value; calc(); });
+  $("#presets").querySelectorAll("button").forEach(b => b.onclick = () => { r.margin = +b.dataset.v; calc(); });
+  $("#pm").onclick = () => { r.portions = Math.max(1, r.portions - 1); calc(); };
+  $("#pp").onclick = () => { r.portions = Math.min(200, r.portions + 1); calc(); };
+  $("#save").onclick = () => {
+    if (!r.name.trim()) r.name = "Mi receta";
+    const list = loadRecipes();
+    if (!r.id) r.id = "r" + Date.now();
+    const i = list.findIndex(x => x.id === r.id);
+    const copy = JSON.parse(JSON.stringify(r));
+    if (i >= 0) list[i] = copy; else list.unshift(copy);
+    saveRecipes(list); renderSaved(); calc(); toast("✓ Receta guardada");
+  };
+  $("#newR").onclick = () => { r = { id: null, name: "", ingredients: [{ name: "", cost: 0 }], margin: CONFIG.defaultMargin, portions: CONFIG.defaultPortions }; load(); window.scrollTo({top:0, behavior:"smooth"}); $("#rname").focus(); };
+  $("#share").onclick = () => {
+    const n = numbers();
+    let msg = `🎂 *${r.name || "Mi torta"}* — precio calculado\n\n`;
+    r.ingredients.filter(i => i.name || i.cost).forEach(i => { msg += `• ${i.name || "Ingrediente"}: ${money(Number(i.cost)||0)}\n`; });
+    msg += `\n🧾 Costo total: ${money(n.cost)}\n📈 Margen: ${r.margin}%\n🍰 Porciones: ${r.portions}\n\n`;
+    msg += `💰 *Precio por porción: ${money(n.per)}*\n🎂 Precio de la torta: *${money(n.total)}*\n✨ Ganancia: ${money(n.profit)}\n\n_Calculado con ${CONFIG.brand}_`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  load(); renderSaved();
+})();
+</script>
+</body>
+</html>
