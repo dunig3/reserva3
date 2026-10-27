@@ -1,1 +1,1 @@
-{"name":"Barbería Los Andes · Citas","short_name":"Citas","start_url":"./","display":"standalone","background_color":"#0b0906","theme_color":"#0b0906","lang":"es-VE","icons":[{"src":"../vendedor/icon.png","sizes":"512x512","type":"image/png","purpose":"any"}]}
+{"name": "Citas", "short_name": "Citas", "start_url": "./", "display": "standalone", "background_color": "#0b0906", "theme_color": "#0b0906", "lang": "es-VE", "icons": [{"src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}]}

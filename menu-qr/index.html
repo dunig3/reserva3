@@ -3,85 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Menú QR · Arepera El Buen Sabor</title>
+<title>Menú QR</title>
 <meta name="description" content="Menú digital con código QR: escanea y pide desde tu mesa.">
 <meta name="theme-color" content="#0b0906">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="../vendedor/icon.png">
+<link rel="icon" href="icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script>
-/* =====================================================================
-   CONFIGURACIÓN DEL NEGOCIO  ·  Edita solo esta sección
-   ---------------------------------------------------------------------
-   - name / city / hours: datos que se muestran en la cabecera.
-   - whatsapp: número que recibe los pedidos, con código de país y sin
-     "+" ni espacios (Venezuela = 58). Ej: 584141234567
-   - currency: símbolo de la moneda que se muestra junto a los precios.
-   - categories: pestañas del menú (el "id" se usa en cada producto).
-   - items: tus productos. "img" puede ser una URL o una ruta local
-     (ej: "img/reina.jpg" si subes tus fotos a una carpeta img/).
-   La mesa se lee de la dirección: .../menu-qr/?mesa=4
-   ---------------------------------------------------------------------
-   ¿Quieres guardar los pedidos en tu propia base de datos (Supabase,
-   Firebase, Google Sheets…)? Busca la función saveOrder() más abajo:
-   ahí puedes enviar el pedido a tu servidor además de a WhatsApp.
-   ===================================================================== */
-const CONFIG = {
-  name: "Arepera El Buen Sabor",
-  tagline: "Sabor andino desde 1998",
-  city: "Mérida, Venezuela",
-  hours: "Lun a Dom · 7:00 am – 10:00 pm",
-  whatsapp: "584140000000",
-  currency: "$",
-  orderPrefix: "BS",
-  heroImg: "https://images.pexels.com/photos/29465174/pexels-photo-29465174.jpeg?auto=compress&cs=tinysrgb&w=900",
-  categories: [
-    { id: "arepas",    label: "Arepas" },
-    { id: "empanadas", label: "Empanadas" },
-    { id: "bebidas",   label: "Bebidas" },
-    { id: "postres",   label: "Postres" }
-  ],
-  items: [
-    { id: "reina",    cat: "arepas", name: "Reina pepiada", desc: "Pollo mechado, aguacate y mayonesa casera", price: 4.50, tag: "Favorita",
-      img: "https://images.pexels.com/photos/29496092/pexels-photo-29496092.jpeg?auto=compress&cs=tinysrgb&w=400" },
-    { id: "pabellon", cat: "arepas", name: "Pabellón", desc: "Carne mechada, caraotas negras, tajadas y queso", price: 5.50, tag: "Especial",
-      img: "https://images.pexels.com/photos/29465173/pexels-photo-29465173.jpeg?auto=compress&cs=tinysrgb&w=400" },
-    { id: "domino",   cat: "arepas", name: "Dominó", desc: "Caraotas negras con queso blanco rallado", price: 3.50,
-      img: "https://images.pexels.com/photos/29496090/pexels-photo-29496090.jpeg?auto=compress&cs=tinysrgb&w=400" },
-    { id: "catira",   cat: "arepas", name: "Catira", desc: "Pollo mechado con queso amarillo", price: 4.00,
-      img: "https://images.pexels.com/photos/29496095/pexels-photo-29496095.jpeg?auto=compress&cs=tinysrgb&w=400" },
-    { id: "pelua",    cat: "arepas", name: "Pelúa", desc: "Carne mechada con queso amarillo rallado", price: 4.50,
-      img: "https://images.pexels.com/photos/29496088/pexels-photo-29496088.jpeg?auto=compress&cs=tinysrgb&w=400" },
-
-    { id: "emp-carne",  cat: "empanadas", name: "Empanada de carne", desc: "Masa de maíz crujiente, carne molida guisada", price: 2.00,
-      img: "https://images.pexels.com/photos/28902899/pexels-photo-28902899.jpeg?auto=compress&cs=tinysrgb&w=400" },
-    { id: "emp-queso",  cat: "empanadas", name: "Empanada de queso", desc: "Rellena de queso blanco que se derrite", price: 1.80,
-      img: "https://images.pexels.com/photos/12469922/pexels-photo-12469922.jpeg?auto=compress&cs=tinysrgb&w=400" },
-    { id: "emp-pollo",  cat: "empanadas", name: "Empanada de pollo", desc: "Pollo guisado con ají dulce", price: 2.00,
-      img: "https://images.pexels.com/photos/23526715/pexels-photo-23526715.jpeg?auto=compress&cs=tinysrgb&w=400" },
-    { id: "emp-pab",    cat: "empanadas", name: "Empanada pabellón", desc: "Carne, caraotas, tajada y queso", price: 2.50, tag: "Nueva",
-      img: "https://images.pexels.com/photos/37025258/pexels-photo-37025258.jpeg?auto=compress&cs=tinysrgb&w=400" },
-    { id: "tequenos",   cat: "empanadas", name: "Tequeños (6 und)", desc: "Palitos de queso con salsa de la casa", price: 3.00,
-      img: "https://images.pexels.com/photos/8305406/pexels-photo-8305406.jpeg?auto=compress&cs=tinysrgb&w=400" },
-
-    { id: "papelon",  cat: "bebidas", name: "Papelón con limón", desc: "Bien frío, endulzado con papelón", price: 1.50, tag: "Clásico",
-      img: "https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=400&q=70&auto=format&fit=crop" },
-    { id: "parchita", cat: "bebidas", name: "Jugo de parchita", desc: "Natural, hecho al momento", price: 2.00,
-      img: "https://images.unsplash.com/photo-1523371054106-bbf80586c38c?w=400&q=70&auto=format&fit=crop" },
-    { id: "marron",   cat: "bebidas", name: "Café marrón", desc: "Café andino con leche espumada", price: 1.00,
-      img: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&q=70&auto=format&fit=crop" },
-
-    { id: "quesillo", cat: "postres", name: "Quesillo", desc: "Flan venezolano con caramelo", price: 2.50, tag: "Casero",
-      img: "../vendedor/img/quesillo.jpg" },
-    { id: "torta",    cat: "postres", name: "Torta de chocolate", desc: "Húmeda, con ganache de cacao venezolano", price: 3.00,
-      img: "../vendedor/img/torta.jpg" },
-    { id: "marquesa", cat: "postres", name: "Marquesa de chocolate", desc: "Capas de galleta, crema y chocolate", price: 3.00,
-      img: "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=400&q=70&auto=format&fit=crop" }
-  ]
-};
-</script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script src="nucleo.js"></script>
 <style>
 :root{--bg:#0b0906;--card:#15110b;--line:rgba(212,175,55,.28);--line2:rgba(212,175,55,.55);--gold:#d4af37;--gold2:#f3d97a;--goldg:linear-gradient(135deg,#f7e48c 0%,#d4af37 48%,#a9851f 100%);--txt:#f5edd9;--mut:#a99d82}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -166,17 +98,24 @@ textarea:focus{outline:none;border-color:var(--gold)}
 .ticket .r{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:#ddd2b8}
 .ticket hr{border:0;border-top:1px dashed rgba(212,175,55,.3);margin:10px 0}
 .foot{text-align:center;color:#6f664f;font-size:11.5px;margin:26px 0 10px}
+.hero .lgo{width:46px;height:46px;border-radius:14px;object-fit:cover;border:1.5px solid var(--gold);margin-bottom:8px;background:#1b150c}
+.closed{margin:12px 16px 0;padding:11px 14px;border-radius:16px;border:1px solid rgba(229,123,110,.5);background:#1d0f0c;color:#f0b3a9;font-size:13px;text-align:center}
+.skel{margin:16px;height:96px;border-radius:18px;background:linear-gradient(90deg,#15110b,#1f180e,#15110b);background-size:200% 100%;animation:sk 1.2s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+.stt{margin-top:12px;font-size:12.5px;color:var(--mut)}
+.foot a{color:#8d8165}
 </style>
 </head>
 <body>
 
 <header class="hero">
-  <img id="heroImg" alt="Arepas recién hechas">
+  <img id="heroImg" alt="">
   <div class="top">
     <span class="pill dark" id="mesaBadge">🍽️ Mesa —</span>
     <span class="pill goldp">Menú digital</span>
   </div>
   <div class="hero-in">
+    <img class="lgo" id="bizLogo" alt="" style="display:none">
     <h1 class="serif" id="bizName"></h1>
     <p id="bizSub"></p>
   </div>
@@ -191,9 +130,10 @@ textarea:focus{outline:none;border-color:var(--gold)}
   </div>
 </section>
 
+<div id="closed" class="closed" style="display:none">🔒 En este momento estamos cerrados. Puedes ver el menú, pero no recibimos pedidos.</div>
 <nav class="tabs" id="tabs"></nav>
-<main id="menu"></main>
-<p class="foot">Menú demo · Hecho con IA por DUNIGSHOP</p>
+<main id="menu"><div class="skel"></div><div class="skel"></div><div class="skel"></div></main>
+<p class="foot">Menú digital · <a href="panel/">Panel del dueño</a></p>
 
 <div class="bar" id="bar"><button id="openCart"><span>Ver pedido <span class="n" id="barN">0</span></span><span id="barT">$0.00</span></button></div>
 
@@ -212,31 +152,60 @@ textarea:focus{outline:none;border-color:var(--gold)}
 <section class="done" id="done">
   <div class="check"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#1b1305" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
   <h2 class="serif">¡Pedido <span class="gold">recibido!</span></h2>
-  <p>La cocina ya está preparando tu pedido.</p>
+  <p id="doneTxt">La cocina ya está preparando tu pedido.</p>
   <div class="ticket" id="ticket"></div>
-  <button class="btn" id="again" style="max-width:360px">Volver al menú</button>
+  <button class="btn" id="waAgain" style="max-width:360px;margin-bottom:10px">Abrir WhatsApp de nuevo</button>
+  <button class="btn ghost" id="again" style="max-width:360px">Volver al menú</button>
 </section>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-(function(){
-  const $ = s => document.querySelector(s);
+(async function(){
+  const N = Nucleo, $ = N.$, esc = N.esc;
+  N.bannerDemo();
   const params = new URLSearchParams(location.search);
   const mesa = (params.get("mesa") || "1").replace(/[^0-9A-Za-z-]/g,"").slice(0,6) || "1";
   const KEY = "menuqr_cart_" + mesa;
-  const money = n => CONFIG.currency + Number(n).toFixed(2);
+  let db, S = {}, CATS = [], ITEMS = [];
+  const money = n => N.money(n, S.moneda || "$");
   let cart = {};
   try { cart = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch(e) { cart = {}; }
-  let active = CONFIG.categories[0].id;
+  let active = null;
+
+  try { db = await N.listo(); }
+  catch(e) { if (e.code === "NO_CONFIG") return N.pantallaSinConexion("panel/"); throw e; }
+
+  async function cargar(){
+    const [a, c, p] = await Promise.all([
+      db.select("mqr_ajustes", { eq: { id: 1 } }),
+      db.select("mqr_categorias", { eq: { activo: true }, order: [["orden"], ["nombre"]] }),
+      db.select("mqr_productos", { eq: { disponible: true }, order: [["orden"], ["nombre"]] })
+    ]);
+    S = (a[0] && a[0].datos) || {};
+    CATS = c; ITEMS = p.map(x => ({ ...x, precio: Number(x.precio) }));
+    const ids = new Set(CATS.map(x => x.id));
+    if (ITEMS.some(i => !ids.has(i.categoria_id))) CATS = CATS.concat([{ id: null, nombre: "Otros" }]);
+    CATS = CATS.filter(c => ITEMS.some(i => (ids.has(i.categoria_id) ? i.categoria_id : null) === c.id));
+    ITEMS.forEach(i => { if (!ids.has(i.categoria_id)) i.categoria_id = null; });
+    Object.keys(cart).forEach(id => { if (!ITEMS.some(i => i.id === id)) delete cart[id]; });
+    if (!CATS.some(c => c.id === active)) active = CATS[0] ? CATS[0].id : null;
+  }
+  try { await cargar(); }
+  catch(e) { $("#menu").innerHTML = `<p class="empty">${esc(e.message)}<br><br><button class="btn" style="max-width:220px;margin:auto" onclick="location.reload()">Reintentar</button></p>`; return; }
 
   // Cabecera
-  $("#heroImg").src = CONFIG.heroImg;
-  $("#bizName").textContent = CONFIG.name;
-  $("#bizSub").textContent = CONFIG.tagline + " · " + CONFIG.city;
-  $("#hrs").textContent = "🕒 " + CONFIG.hours;
-  $("#mesaBadge").textContent = "🍽️ Mesa " + mesa;
-  $("#sheetTitle").textContent = "Tu pedido · Mesa " + mesa;
-  document.title = "Menú QR · " + CONFIG.name;
+  function cabecera(){
+    $("#heroImg").src = N.img(S.portada) || "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+    if (S.logo) { $("#bizLogo").src = N.img(S.logo); $("#bizLogo").style.display = ""; } else $("#bizLogo").style.display = "none";
+    $("#bizName").textContent = S.nombre || "Nuestro menú";
+    $("#bizSub").textContent = [S.lema, S.ciudad].filter(Boolean).join(" · ");
+    $("#hrs").textContent = S.horario ? "🕒 " + S.horario : "";
+    $("#mesaBadge").textContent = "🍽️ Mesa " + mesa;
+    $("#sheetTitle").textContent = "Tu pedido · Mesa " + mesa;
+    $("#closed").style.display = S.abierto === false ? "" : "none";
+    document.title = "Menú QR · " + (S.nombre || "");
+  }
+  cabecera();
 
   // QR con la dirección de esta página (incluye la mesa)
   try {
@@ -245,28 +214,33 @@ textarea:focus{outline:none;border-color:var(--gold)}
 
   // Pestañas
   const tabs = $("#tabs");
-  CONFIG.categories.forEach(c => {
-    const b = document.createElement("button");
-    b.className = "tab"; b.textContent = c.label; b.dataset.id = c.id;
-    b.onclick = () => { active = c.id; renderTabs(); document.getElementById("sec-" + c.id).scrollIntoView({behavior:"smooth", block:"start"}); };
-    tabs.appendChild(b);
-  });
-  function renderTabs(){ tabs.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.id === active)); }
+  const secId = id => "sec-" + (id || "otros");
+  function buildTabs(){
+    tabs.innerHTML = "";
+    CATS.forEach(c => {
+      const b = document.createElement("button");
+      b.className = "tab"; b.textContent = c.nombre; b.dataset.id = c.id || "";
+      b.onclick = () => { active = c.id; renderTabs(); const s = document.getElementById(secId(c.id)); s && s.scrollIntoView({behavior:"smooth", block:"start"}); };
+      tabs.appendChild(b);
+    });
+  }
+  function renderTabs(){ tabs.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", (t.dataset.id || null) === active)); }
 
   // Menú
   function renderMenu(){
     const m = $("#menu"); m.innerHTML = "";
-    CONFIG.categories.forEach(c => {
-      const items = CONFIG.items.filter(i => i.cat === c.id);
-      const s = document.createElement("section"); s.className = "sec"; s.id = "sec-" + c.id;
+    if (!ITEMS.length) { m.innerHTML = `<p class="empty">El menú se está preparando. Vuelve pronto 🙌</p>`; return; }
+    CATS.forEach(c => {
+      const items = ITEMS.filter(i => i.categoria_id === c.id);
+      const s = document.createElement("section"); s.className = "sec"; s.id = secId(c.id);
       s.style.scrollMarginTop = "64px";
-      s.innerHTML = `<div class="sec-h"><h3 class="serif">${c.label}</h3><span>${items.length} opciones</span></div>`;
+      s.innerHTML = `<div class="sec-h"><h3 class="serif">${esc(c.nombre)}</h3><span>${items.length} opciones</span></div>`;
       items.forEach(i => {
         const q = cart[i.id] || 0;
         const el = document.createElement("article"); el.className = "item";
-        el.innerHTML = `<div class="ph"><img loading="lazy" src="${i.img}" alt="${i.name}">${i.tag ? `<span class="tag">${i.tag}</span>` : ""}</div>
-          <div class="info"><h4>${i.name}</h4><div class="d">${i.desc}</div>
-          <div class="row"><span class="price">${money(i.price)}</span>${q ? `<div class="step"><button data-m="${i.id}" aria-label="Quitar">−</button><b>${q}</b><button class="p" data-p="${i.id}" aria-label="Agregar">+</button></div>` : `<button class="add" data-p="${i.id}" aria-label="Agregar ${i.name}">+</button>`}</div></div>`;
+        el.innerHTML = `<div class="ph">${i.foto ? `<img loading="lazy" src="${esc(N.img(i.foto))}" alt="${esc(i.nombre)}">` : ""}${i.etiqueta ? `<span class="tag">${esc(i.etiqueta)}</span>` : ""}</div>
+          <div class="info"><h4>${esc(i.nombre)}</h4><div class="d">${esc(i.descripcion || "")}</div>
+          <div class="row"><span class="price">${money(i.precio)}</span>${q ? `<div class="step"><button data-m="${i.id}" aria-label="Quitar">−</button><b>${q}</b><button class="p" data-p="${i.id}" aria-label="Agregar">+</button></div>` : `<button class="add" data-p="${i.id}" aria-label="Agregar ${esc(i.nombre)}">+</button>`}</div></div>`;
         s.appendChild(el);
       });
       m.appendChild(s);
@@ -283,9 +257,9 @@ textarea:focus{outline:none;border-color:var(--gold)}
     localStorage.setItem(KEY, JSON.stringify(cart));
     renderMenu(); renderBar(); if ($("#sheet").classList.contains("show")) renderSheet();
   }
-  const lines = () => Object.keys(cart).map(id => ({ item: CONFIG.items.find(i => i.id === id), q: cart[id] })).filter(l => l.item);
+  const lines = () => Object.keys(cart).map(id => ({ item: ITEMS.find(i => i.id === id), q: cart[id] })).filter(l => l.item);
   const count = () => lines().reduce((a,l) => a + l.q, 0);
-  const total = () => lines().reduce((a,l) => a + l.q * l.item.price, 0);
+  const total = () => lines().reduce((a,l) => a + l.q * l.item.precio, 0);
 
   function renderBar(){
     $("#barN").textContent = count(); $("#barT").textContent = money(total());
@@ -296,57 +270,64 @@ textarea:focus{outline:none;border-color:var(--gold)}
     box.innerHTML = L.length ? "" : `<p class="empty">Tu pedido está vacío.</p>`;
     L.forEach(l => {
       const d = document.createElement("div"); d.className = "line";
-      d.innerHTML = `<img src="${l.item.img}" alt=""><div class="nm">${l.item.name}<small>${money(l.item.price)} c/u</small></div>
+      d.innerHTML = `${l.item.foto ? `<img src="${esc(N.img(l.item.foto))}" alt="">` : ""}<div class="nm">${esc(l.item.nombre)}<small>${money(l.item.precio)} c/u</small></div>
         <div class="step"><button data-m="${l.item.id}">−</button><b>${l.q}</b><button class="p" data-p="${l.item.id}">+</button></div>
-        <div class="lt">${money(l.q * l.item.price)}</div>`;
+        <div class="lt">${money(l.q * l.item.precio)}</div>`;
       box.appendChild(d);
     });
     $("#total").textContent = money(total());
-    $("#send").disabled = !L.length; $("#send").style.opacity = L.length ? 1 : .5;
+    const cerrado = S.abierto === false, ok = L.length && !cerrado;
+    $("#send").disabled = !ok; $("#send").style.opacity = ok ? 1 : .5;
+    $("#send").lastChild.textContent = cerrado ? "Estamos cerrados" : "Enviar pedido por WhatsApp";
   }
   function openSheet(){ renderSheet(); $("#ov").classList.add("show"); $("#sheet").classList.add("show"); }
   function closeSheet(){ $("#ov").classList.remove("show"); $("#sheet").classList.remove("show"); }
   $("#openCart").onclick = openSheet; $("#closeCart").onclick = closeSheet; $("#ov").onclick = closeSheet;
 
-  // Número de pedido correlativo (guardado en este teléfono)
-  function nextOrderNumber(){
-    const n = (parseInt(localStorage.getItem("menuqr_seq") || "1040", 10) + 1);
-    localStorage.setItem("menuqr_seq", n); return CONFIG.orderPrefix + "-" + n;
-  }
-
-  // 👉 Conecta aquí tu base de datos si lo deseas (fetch a tu API / Supabase).
-  function saveOrder(order){
-    const hist = JSON.parse(localStorage.getItem("menuqr_orders") || "[]");
-    hist.unshift(order); localStorage.setItem("menuqr_orders", JSON.stringify(hist.slice(0,50)));
-  }
-
-  $("#send").onclick = () => {
-    const L = lines(); if (!L.length) return;
-    const num = nextOrderNumber(), note = $("#note").value.trim();
+  let lastWa = "";
+  $("#send").onclick = async () => {
+    const L = lines(); if (!L.length || S.abierto === false) return;
+    const num = N.codigo(S.prefijo || "P"), note = $("#note").value.trim().slice(0, 400);
     const hora = new Date().toLocaleTimeString("es-VE", { hour: "numeric", minute: "2-digit" });
-    let msg = `🫓 *Nuevo pedido · ${CONFIG.name}*\n`;
+    let msg = `🫓 *Nuevo pedido · ${S.nombre || ""}*\n`;
     msg += `🧾 Pedido: *${num}*\n🍽️ Mesa: *${mesa}*\n🕒 Hora: ${hora}\n\n`;
-    L.forEach(l => { msg += `• ${l.q} x ${l.item.name} — ${money(l.q * l.item.price)}\n`; });
+    L.forEach(l => { msg += `• ${l.q} x ${l.item.nombre} — ${money(l.q * l.item.precio)}\n`; });
     msg += `\n💰 *Total: ${money(total())}*`;
     if (note) msg += `\n📝 Notas: ${note}`;
     msg += `\n\n_Enviado desde el menú QR_`;
-    saveOrder({ num, mesa, items: L.map(l => ({ id: l.item.id, q: l.q })), total: total(), note, at: Date.now() });
-    window.open(`https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`, "_blank");
-
-    $("#ticket").innerHTML = `<div class="r"><span>Pedido</span><span>Mesa ${mesa}</span></div><div class="num">#${num}</div><hr>` +
-      L.map(l => `<div class="r"><span>${l.q} × ${l.item.name}</span><span>${money(l.q * l.item.price)}</span></div>`).join("") +
-      `<hr><div class="r" style="font-weight:600;color:#f3d97a"><span>Total</span><span>${money(total())}</span></div>`;
-    cart = {}; localStorage.setItem(KEY, "{}"); $("#note").value = "";
-    closeSheet(); renderMenu(); renderBar();
-    $("#done").classList.add("show");
+    lastWa = `https://wa.me/${N.waNum(S.whatsapp)}?text=${encodeURIComponent(msg)}`;
+    // Se abre WhatsApp en el mismo toque (los teléfonos bloquean ventanas abiertas después) y se guarda el pedido en la base de datos.
+    if (N.waNum(S.whatsapp)) window.open(lastWa, "_blank");
+    const btn = $("#send"); btn.disabled = true;
+    const tot = total();
+    $("#ticket").innerHTML = `<div class="r"><span>Pedido</span><span>Mesa ${esc(mesa)}</span></div><div class="num">#${esc(num)}</div><hr>` +
+      L.map(l => `<div class="r"><span>${l.q} × ${esc(l.item.nombre)}</span><span>${money(l.q * l.item.precio)}</span></div>`).join("") +
+      `<hr><div class="r" style="font-weight:600;color:#f3d97a"><span>Total</span><span>${money(tot)}</span></div><div class="stt" id="stt">⏳ Registrando pedido…</div>`;
+    try {
+      await db.insert("mqr_pedidos", { id: N.uid(), codigo: num, mesa, items: L.map(l => ({ id: l.item.id, nombre: l.item.nombre, precio: l.item.precio, cant: l.q })), total: tot, nota: note, estado: "nuevo" });
+      cart = {}; localStorage.setItem(KEY, "{}"); $("#note").value = "";
+      closeSheet(); renderMenu(); renderBar();
+      $("#done").classList.add("show");
+      $("#stt").textContent = "✓ Pedido registrado en la cocina";
+    } catch(e) {
+      N.toast("⚠️ " + e.message, 5000);
+    } finally { btn.disabled = false; }
   };
+  $("#waAgain").onclick = () => { if (lastWa) window.open(lastWa, "_blank"); };
   $("#again").onclick = () => { $("#done").classList.remove("show"); window.scrollTo({top:0}); };
 
   // Resalta la pestaña según la sección visible
-  const io = new IntersectionObserver(es => { es.forEach(en => { if (en.isIntersecting) { active = en.target.id.replace("sec-",""); renderTabs(); } }); }, { rootMargin: "-40% 0px -55% 0px" });
+  const io = new IntersectionObserver(es => { es.forEach(en => { if (en.isIntersecting) { const id = en.target.id.replace("sec-",""); const c = CATS.find(x => (x.id || "otros") === id); active = c ? c.id : null; renderTabs(); } }); }, { rootMargin: "-40% 0px -55% 0px" });
   window.__io = io;
-  renderTabs(); renderMenu(); renderBar();
+  buildTabs(); renderTabs(); renderMenu(); renderBar();
+
+  // Cambios del dueño (precios, disponibilidad, abierto/cerrado) se reflejan solos
+  let tRe;
+  const recargar = () => { clearTimeout(tRe); tRe = setTimeout(async () => { try { await cargar(); cabecera(); buildTabs(); renderTabs(); renderMenu(); renderBar(); } catch(e) {} }, 400); };
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) recargar(); });
+  if (db.modo === "demo") ["mqr_productos","mqr_categorias","mqr_ajustes"].forEach(t => db.subscribe(t, recargar));
 })();
 </script>
+
 </body>
 </html>

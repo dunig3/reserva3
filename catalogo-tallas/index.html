@@ -3,78 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Moda Sierra · Catálogo</title>
+<title>Catálogo</title>
 <meta name="description" content="Catálogo de ropa y calzado con filtros por categoría y talla. Envíos a toda Venezuela.">
 <meta name="theme-color" content="#0b0906">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="../vendedor/icon.png">
+<link rel="icon" href="icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script>
-/* =====================================================================
-   CONFIGURACIÓN DE LA TIENDA  ·  Edita solo esta sección
-   ---------------------------------------------------------------------
-   - whatsapp: número que recibe los pedidos (58 + número, sin "+").
-   - categories: chips de categoría. "sizes" indica qué tallas se
-     muestran como filtro cuando esa categoría está activa.
-   - products: tus productos. "sizes" = tallas disponibles,
-     "isNew" = muestra la etiqueta "Nuevo", "added" = fecha (para
-     ordenar por Novedades), "img" = URL o ruta local de la foto.
-   ---------------------------------------------------------------------
-   ¿Quieres manejar el inventario desde tu propia base de datos
-   (Supabase, Firebase, Google Sheets…)? Reemplaza la función
-   loadProducts() de abajo por una llamada a tu API que devuelva
-   la misma lista de productos.
-   ===================================================================== */
-const CONFIG = {
-  name: "Moda Sierra",
-  tagline: "Ropa y calzado · Envíos a toda Venezuela",
-  whatsapp: "584140000000",
-  currency: "$",
-  heroImg: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=900&q=70&auto=format&fit=crop",
-  clothingSizes: ["S","M","L","XL"],
-  shoeSizes: ["36","37","38","39","40","41"],
-  categories: [
-    { id: "todo",       label: "Todo" },
-    { id: "camisas",    label: "Camisas",    sizes: "clothing" },
-    { id: "vestidos",   label: "Vestidos",   sizes: "clothing" },
-    { id: "jeans",      label: "Jeans",      sizes: "clothing" },
-    { id: "zapatos",    label: "Zapatos",    sizes: "shoes" },
-    { id: "deportivos", label: "Deportivos", sizes: "shoes" }
-  ],
-  products: [
-    { id: 1,  cat: "camisas",    name: "Camisa denim clásica",   price: 18, sizes: ["S","M","L","XL"], isNew: true,  added: "2026-10-20",
-      img: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500&q=70&auto=format&fit=crop" },
-    { id: 2,  cat: "camisas",    name: "Camisa formal celeste",  price: 22, sizes: ["M","L","XL"],     added: "2026-09-28",
-      img: "https://images.unsplash.com/photo-1620012253295-c15cc3e65df4?w=500&q=70&auto=format&fit=crop" },
-    { id: 3,  cat: "camisas",    name: "Franela estampada",      price: 12, sizes: ["S","M","L"],      added: "2026-10-02",
-      img: "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=500&q=70&auto=format&fit=crop" },
-    { id: 4,  cat: "vestidos",   name: "Vestido rojo floral",    price: 35, sizes: ["S","M","L"],      isNew: true,  added: "2026-10-22",
-      img: "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=500&q=70&auto=format&fit=crop" },
-    { id: 5,  cat: "vestidos",   name: "Vestido largo de gala",  price: 45, sizes: ["S","M"],          added: "2026-09-15",
-      img: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=500&q=70&auto=format&fit=crop" },
-    { id: 6,  cat: "vestidos",   name: "Vestido blanco verano",  price: 28, sizes: ["S","M","L","XL"], added: "2026-10-10",
-      img: "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=500&q=70&auto=format&fit=crop" },
-    { id: 7,  cat: "jeans",      name: "Jean clásico azul",      price: 25, sizes: ["S","M","L","XL"], added: "2026-09-30",
-      img: "https://images.unsplash.com/photo-1542272604-787c3835535d?w=500&q=70&auto=format&fit=crop" },
-    { id: 8,  cat: "jeans",      name: "Jean recto oscuro",      price: 27, sizes: ["M","L","XL"],     isNew: true,  added: "2026-10-18",
-      img: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=500&q=70&auto=format&fit=crop" },
-    { id: 9,  cat: "zapatos",    name: "Tacones estampados",     price: 38, sizes: ["36","37","38","39"], added: "2026-10-05",
-      img: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=500&q=70&auto=format&fit=crop" },
-    { id: 10, cat: "zapatos",    name: "Zapato casual vinotinto", price: 30, sizes: ["37","38","39","40","41"], isNew: true, added: "2026-10-24",
-      img: "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=500&q=70&auto=format&fit=crop" },
-    { id: 11, cat: "deportivos", name: "Deportivo Runner rojo",  price: 55, sizes: ["38","39","40","41"], isNew: true, added: "2026-10-25",
-      img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=70&auto=format&fit=crop" },
-    { id: 12, cat: "deportivos", name: "Deportivo urbano camel", price: 60, sizes: ["39","40","41"],  added: "2026-09-20",
-      img: "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=500&q=70&auto=format&fit=crop" },
-    { id: 13, cat: "deportivos", name: "Deportivo pastel",       price: 50, sizes: ["36","37","38","39"], added: "2026-10-12",
-      img: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=500&q=70&auto=format&fit=crop" },
-    { id: 14, cat: "deportivos", name: "Deportivo blanco clásico", price: 48, sizes: ["37","38","39","40","41"], added: "2026-08-30",
-      img: "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=500&q=70&auto=format&fit=crop" }
-  ]
-};
-</script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script src="nucleo.js"></script>
 <style>
 :root{--bg:#0b0906;--card:#15110b;--line:rgba(212,175,55,.28);--line2:rgba(212,175,55,.6);--gold:#d4af37;--gold2:#f3d97a;--goldg:linear-gradient(135deg,#f7e48c 0%,#d4af37 48%,#a9851f 100%);--txt:#f5edd9;--mut:#a99d82}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -152,6 +91,15 @@ img{display:block}
 .btn svg{width:20px;height:20px}
 .ship{display:flex;gap:8px;justify-content:center;font-size:12px;color:var(--mut);margin-top:12px}
 .foot{text-align:center;color:#6f664f;font-size:11.5px;margin:26px 0 0}
+.logo{display:flex;align-items:center;gap:9px}.logo img{width:38px;height:38px;border-radius:11px;object-fit:cover;border:1px solid var(--line2)}
+.gal{display:flex;gap:6px;margin-top:10px;overflow-x:auto}.gal img{width:52px;height:62px;border-radius:10px;object-fit:cover;border:1px solid var(--line);flex:0 0 auto;cursor:pointer}.gal img.on{border-color:var(--gold)}
+.fld{margin-top:10px}.fld input{width:100%;background:#0f0c08;border:1px solid var(--line);border-radius:14px;padding:12px 14px;color:var(--txt);font-size:15px}.fld input:focus{outline:none;border-color:var(--gold)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sz small{display:block;font-size:9px;font-weight:500;color:var(--mut);margin-top:-2px}
+.skel{aspect-ratio:4/5;border-radius:18px;background:linear-gradient(90deg,#15110b,#1f180e,#15110b);background-size:200% 100%;animation:sk 1.2s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+.foot a{color:#8d8165}
+.okm{display:none;text-align:center;color:#7fd39b;font-size:13px;margin-top:10px}
 </style>
 </head>
 <body>
@@ -161,17 +109,17 @@ img{display:block}
 </header>
 
 <section class="hero">
-  <img id="heroImg" alt="Nueva colección">
+  <img id="heroImg" alt="">
   <div class="hero-in">
-    <span class="badge">Temporada 2026</span>
-    <h1 class="serif">Nueva <em class="gold">colección</em></h1>
+    <span class="badge" id="heroBadge"></span>
+    <h1 class="serif" id="heroT">Nueva <em class="gold">colección</em></h1>
     <p id="heroSub"></p>
   </div>
 </section>
 
 <div class="search">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-  <input id="q" type="search" placeholder="Buscar camisas, vestidos, zapatos…" autocomplete="off">
+  <input id="q" type="search" placeholder="Buscar productos…" autocomplete="off">
 </div>
 <nav class="chips" id="cats"></nav>
 <div class="sizes" id="sizes"></div>
@@ -182,115 +130,171 @@ img{display:block}
     <option value="desc">Precio mayor</option>
   </select>
 </div>
-<main class="grid" id="grid"></main>
-<p class="foot">Catálogo demo · Hecho con IA por DUNIGSHOP</p>
+<main class="grid" id="grid"><div class="skel"></div><div class="skel"></div></main>
+<p class="foot">Catálogo en línea · <a href="panel/">Panel del dueño</a></p>
 
 <div class="ov" id="ov"></div>
 <section class="sheet" id="sheet" role="dialog" aria-modal="true">
   <div class="grab"></div>
   <button class="x" id="shClose" aria-label="Cerrar">×</button>
-  <div class="sh-top"><img id="shImg" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"><div><h2 class="serif" id="shName"></h2><div class="price" id="shPrice"></div></div></div>
+  <div class="sh-top"><img id="shImg" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"><div><h2 class="serif" id="shName"></h2><div class="price" id="shPrice"></div><p id="shDesc" style="font-size:12.5px;color:var(--mut);margin-top:4px"></p></div></div>
+  <div class="gal" id="shGal"></div>
   <div class="sh-lbl">Elige tu talla</div>
   <div class="pick" id="shSizes"></div>
   <div class="sh-lbl">Cantidad</div>
   <div class="qty"><button id="qm" aria-label="Menos">−</button><b id="qv">1</b><button id="qp" aria-label="Más">+</button></div>
+  <div class="sh-lbl">Tus datos</div>
+  <div class="two"><div class="fld" style="margin:0"><input id="cN" autocomplete="name" placeholder="Tu nombre" maxlength="80"></div><div class="fld" style="margin:0"><input id="cT" type="tel" inputmode="tel" autocomplete="tel" placeholder="Teléfono" maxlength="30"></div></div>
   <button class="btn" id="order" disabled><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.6-.3.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.1 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.6-.1 1.2Z"/></svg><span id="orderTxt">Elige una talla</span></button>
-  <p class="ship">🚚 Envíos a toda Venezuela · Pago móvil, Zelle o efectivo</p>
+  <p class="okm" id="okm"></p>
+  <p class="ship" id="ship"></p>
 </section>
 
 <script>
-(function(){
-  const $ = s => document.querySelector(s);
-  const money = n => CONFIG.currency + Number(n).toFixed(2).replace(/\.00$/, "");
-  // 👉 Base de datos propia: devuelve aquí tus productos desde tu API.
-  function loadProducts(){ return CONFIG.products; }
-  const products = loadProducts();
-  const st = { cat: "todo", size: null, q: "", sort: "new", pick: null, psize: null, qty: 1 };
+(async function(){
+  const N = Nucleo, $ = N.$, esc = N.esc;
+  N.bannerDemo();
+  let db, S = {}, CATS = [], SETS = [], products = [];
+  const money = n => N.money0(n, S.moneda || "$");
+  const st = { cat: "todo", size: null, q: "", sort: "new", pick: null, psize: null, qty: 1, foto: 0 };
+  try { db = await N.listo(); }
+  catch(e) { if (e.code === "NO_CONFIG") return N.pantallaSinConexion("panel/"); throw e; }
 
-  $("#logo").innerHTML = CONFIG.name.replace(/^(\S+)\s?(.*)$/, '$1 <span class="gold">$2</span>') + "<small>Ropa · Calzado</small>";
-  $("#heroImg").src = CONFIG.heroImg;
-  $("#heroSub").textContent = CONFIG.tagline;
-  $("#waTop").href = `https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent("¡Hola " + CONFIG.name + "! Quiero información sobre el catálogo 👗👟")}`;
-  document.title = CONFIG.name + " · Catálogo";
+  async function cargar(){
+    const [a, t, c, p] = await Promise.all([
+      db.select("cat_ajustes", { eq: { id: 1 } }),
+      db.select("cat_tallas", { order: [["orden"], ["nombre"]] }),
+      db.select("cat_categorias", { order: [["orden"], ["nombre"]] }),
+      db.select("cat_productos", { eq: { activo: true }, order: [["orden"], ["nombre"]] })
+    ]);
+    S = (a[0] && a[0].datos) || {}; SETS = t; CATS = c;
+    products = p.map(x => ({ ...x, precio: Number(x.precio), tallas: Array.isArray(x.tallas) ? x.tallas : [], fotos: Array.isArray(x.fotos) ? x.fotos : [] }));
+    CATS = CATS.filter(c => products.some(p => p.categoria_id === c.id));
+    if (st.cat !== "todo" && !CATS.some(c => c.id === st.cat)) st.cat = "todo";
+  }
+  try { await cargar(); }
+  catch(e) { $("#grid").innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+
+  const disp = t => t.stock == null || Number(t.stock) > 0;
+  const tallasDe = p => p.tallas.filter(disp).map(t => t.t);
+  const setDe = catId => { const c = CATS.find(x => x.id === catId); const s = c && SETS.find(x => x.id === c.tallas_id); return s ? s.tallas : null; };
+  const uniq = a => a.filter((x, i) => a.indexOf(x) === i);
+
+  function cabecera(){
+    const nom = S.nombre || "Catálogo";
+    $("#logo").innerHTML = (S.logo ? `<img src="${esc(N.img(S.logo))}" alt="">` : "") + `<div>${esc(nom).replace(/^(\S+)\s?(.*)$/, '$1 <span class="gold">$2</span>')}<small>${esc(S.subtitulo || "Ropa · Calzado")}</small></div>`;
+    $("#heroImg").src = N.img(S.banner) || "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+    $("#heroSub").textContent = S.lema || "";
+    $("#heroBadge").textContent = S.insignia || "Nuevo"; $("#heroBadge").style.display = S.insignia === "" ? "none" : "";
+    $("#ship").textContent = S.envios || "";
+    const w = N.waNum(S.whatsapp);
+    $("#waTop").style.display = w ? "" : "none";
+    $("#waTop").href = `https://wa.me/${w}?text=${encodeURIComponent("¡Hola " + nom + "! Quiero información sobre el catálogo 👗👟")}`;
+    document.title = nom + " · Catálogo";
+  }
 
   const catBox = $("#cats");
-  CONFIG.categories.forEach(c => {
-    const b = document.createElement("button"); b.className = "chip"; b.textContent = c.label; b.dataset.id = c.id;
-    b.onclick = () => { if (st.cat !== c.id) st.size = null; st.cat = c.id; render(); };
-    catBox.appendChild(b);
-  });
-
-  function sizeList(){
-    const c = CONFIG.categories.find(x => x.id === st.cat);
-    if (!c || !c.sizes) return CONFIG.clothingSizes.concat(CONFIG.shoeSizes);
-    return c.sizes === "shoes" ? CONFIG.shoeSizes : CONFIG.clothingSizes;
+  function renderCats(){
+    catBox.innerHTML = "";
+    [{ id: "todo", nombre: "Todo" }].concat(CATS).forEach(c => {
+      const b = document.createElement("button"); b.className = "chip"; b.textContent = c.nombre; b.dataset.id = c.id;
+      b.onclick = () => { if (st.cat !== c.id) st.size = null; st.cat = c.id; render(); };
+      catBox.appendChild(b);
+    });
   }
-
+  function sizeList(){
+    if (st.cat === "todo") return uniq(SETS.reduce((a, s) => a.concat(s.tallas), []).concat(...products.map(tallasDe)));
+    return uniq((setDe(st.cat) || []).concat(...products.filter(p => p.categoria_id === st.cat).map(tallasDe)));
+  }
   function renderSizes(){
-    const box = $("#sizes");
-    box.innerHTML = `<span class="lbl">Talla</span>` + sizeList().map(s => `<button class="sz ${st.size === s ? "on" : ""}" data-s="${s}">${s}</button>`).join("");
+    const box = $("#sizes"), L = sizeList();
+    box.style.display = L.length ? "" : "none";
+    box.innerHTML = `<span class="lbl">Talla</span>` + L.map(s => `<button class="sz ${st.size === s ? "on" : ""}" data-s="${esc(s)}">${esc(s)}</button>`).join("");
     box.querySelectorAll(".sz").forEach(b => b.onclick = () => { st.size = st.size === b.dataset.s ? null : b.dataset.s; render(); });
   }
-
-  const norm = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const catNom = id => (CATS.find(c => c.id === id) || {}).nombre || "";
   function filtered(){
     let list = products.filter(p =>
-      (st.cat === "todo" || p.cat === st.cat) &&
-      (!st.size || p.sizes.includes(st.size)) &&
-      (!st.q || norm(p.name + " " + p.cat).includes(norm(st.q))));
-    if (st.sort === "asc") list.sort((a,b) => a.price - b.price);
-    else if (st.sort === "desc") list.sort((a,b) => b.price - a.price);
-    else list.sort((a,b) => (b.added || "").localeCompare(a.added || ""));
+      (st.cat === "todo" || p.categoria_id === st.cat) &&
+      (!st.size || tallasDe(p).includes(st.size)) &&
+      (!st.q || norm(p.nombre + " " + catNom(p.categoria_id) + " " + (p.descripcion || "")).includes(norm(st.q))));
+    if (st.sort === "asc") list.sort((a,b) => a.precio - b.precio);
+    else if (st.sort === "desc") list.sort((a,b) => b.precio - a.precio);
+    else list.sort((a,b) => (b.nuevo - a.nuevo) || String(b.creado || "").localeCompare(String(a.creado || "")));
     return list;
   }
-
   function render(){
     catBox.querySelectorAll(".chip").forEach(b => b.classList.toggle("on", b.dataset.id === st.cat));
     renderSizes();
     const list = filtered(), g = $("#grid");
     $("#cnt").innerHTML = `<b>${list.length}</b> producto${list.length === 1 ? "" : "s"}`;
+    if (!products.length) { g.innerHTML = `<div class="empty">Estamos preparando el catálogo. ¡Vuelve pronto!</div>`; return; }
     if (!list.length) { g.innerHTML = `<div class="empty">No encontramos productos con esos filtros.<br><button id="clr">Limpiar filtros</button></div>`;
       $("#clr").onclick = () => { st.cat = "todo"; st.size = null; st.q = ""; $("#q").value = ""; render(); }; return; }
-    g.innerHTML = list.map(p => `<article class="p">
-      <div class="ph"><img src="${p.img}" alt="${p.name}" loading="lazy">${p.isNew ? `<span class="new">Nuevo</span>` : ""}</div>
-      <div class="b"><h3>${p.name}</h3><div class="s">Tallas: ${p.sizes.join(" · ")}</div>
-      <div class="row"><span class="price">${money(p.price)}</span><button class="ask" data-id="${p.id}">Pedir</button></div></div></article>`).join("");
-    g.querySelectorAll(".ask").forEach(b => b.onclick = () => open(products.find(p => p.id == b.dataset.id)));
+    g.innerHTML = list.map(p => { const ts = tallasDe(p); return `<article class="p">
+      <div class="ph">${p.fotos[0] ? `<img src="${esc(N.img(p.fotos[0]))}" alt="${esc(p.nombre)}" loading="lazy">` : ""}${p.nuevo ? `<span class="new">Nuevo</span>` : ""}</div>
+      <div class="b"><h3>${esc(p.nombre)}</h3><div class="s">${ts.length ? "Tallas: " + ts.map(esc).join(" · ") : "Agotado"}</div>
+      <div class="row"><span class="price">${money(p.precio)}</span><button class="ask" data-id="${p.id}" ${ts.length ? "" : "disabled style=\"opacity:.5\""}>Pedir</button></div></div></article>`; }).join("");
+    g.querySelectorAll(".ask").forEach(b => b.onclick = () => open(products.find(p => p.id === b.dataset.id)));
   }
-
   $("#q").addEventListener("input", e => { st.q = e.target.value.trim(); render(); });
   $("#sort").addEventListener("change", e => { st.sort = e.target.value; render(); });
 
   // Hoja de pedido
   function open(p){
-    st.pick = p; st.psize = st.size && p.sizes.includes(st.size) ? st.size : null; st.qty = 1;
-    $("#shImg").src = p.img; $("#shName").textContent = p.name; $("#shPrice").textContent = money(p.price);
-    const all = (CONFIG.categories.find(c => c.id === p.cat) || {}).sizes === "shoes" ? CONFIG.shoeSizes : CONFIG.clothingSizes;
-    $("#shSizes").innerHTML = all.map(s => `<button class="sz" data-s="${s}" ${p.sizes.includes(s) ? "" : "disabled"}>${s}</button>`).join("");
+    st.pick = p; st.psize = st.size && tallasDe(p).includes(st.size) ? st.size : null; st.qty = 1; st.foto = 0;
+    $("#shName").textContent = p.nombre; $("#shPrice").textContent = money(p.precio); $("#shDesc").textContent = p.descripcion || "";
+    const todas = uniq((setDe(p.categoria_id) || []).concat(p.tallas.map(x => x.t)));
+    $("#shSizes").innerHTML = todas.map(s => { const t = p.tallas.find(x => x.t === s); const ok = t && disp(t); const pocas = t && t.stock != null && t.stock > 0 && t.stock <= 2;
+      return `<button class="sz" data-s="${esc(s)}" ${ok ? "" : "disabled"}>${esc(s)}${pocas ? `<small>quedan ${t.stock}</small>` : ""}</button>`; }).join("");
     $("#shSizes").querySelectorAll(".sz:not([disabled])").forEach(b => b.onclick = () => { st.psize = b.dataset.s; sheet(); });
-    sheet(); $("#ov").classList.add("show"); $("#sheet").classList.add("show");
+    $("#okm").style.display = "none";
+    try { const c = JSON.parse(localStorage.getItem("cat_cliente") || "{}"); if (c.n && !$("#cN").value) $("#cN").value = c.n; if (c.t && !$("#cT").value) $("#cT").value = c.t; } catch(e) {}
+    fotos(); sheet(); $("#ov").classList.add("show"); $("#sheet").classList.add("show");
   }
+  function fotos(){
+    const p = st.pick, f = p.fotos;
+    $("#shImg").src = f[st.foto] ? N.img(f[st.foto]) : "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+    $("#shGal").innerHTML = f.length > 1 ? f.map((u, i) => `<img src="${esc(N.img(u))}" class="${i === st.foto ? "on" : ""}" data-i="${i}" alt="">`).join("") : "";
+    $("#shGal").querySelectorAll("img").forEach(im => im.onclick = () => { st.foto = +im.dataset.i; fotos(); });
+  }
+  const okDatos = () => $("#cN").value.trim().length >= 2;
   function sheet(){
     $("#shSizes").querySelectorAll(".sz").forEach(b => b.classList.toggle("on", b.dataset.s === st.psize));
     $("#qv").textContent = st.qty;
-    $("#order").disabled = !st.psize;
-    $("#orderTxt").textContent = st.psize ? `Pedir por WhatsApp · ${money(st.pick.price * st.qty)}` : "Elige una talla";
+    $("#order").disabled = !st.psize || !okDatos();
+    $("#orderTxt").textContent = !st.psize ? "Elige una talla" : !okDatos() ? "Escribe tu nombre" : `Pedir por WhatsApp · ${money(st.pick.precio * st.qty)}`;
   }
+  $("#cN").addEventListener("input", sheet);
   const close = () => { $("#ov").classList.remove("show"); $("#sheet").classList.remove("show"); };
   $("#ov").onclick = close; $("#shClose").onclick = close;
   $("#qm").onclick = () => { st.qty = Math.max(1, st.qty - 1); sheet(); };
   $("#qp").onclick = () => { st.qty = Math.min(20, st.qty + 1); sheet(); };
-  $("#order").onclick = () => {
-    if (!st.psize) return; const p = st.pick;
-    let msg = `🛍️ *Pedido · ${CONFIG.name}*\n\n`;
-    msg += `👗 Producto: *${p.name}*\n📏 Talla: *${st.psize}*\n🔢 Cantidad: ${st.qty}\n💲 Precio: ${money(p.price)} c/u\n\n`;
-    msg += `💰 *Total: ${money(p.price * st.qty)}*\n\n¿Está disponible? Quiero coordinar el pago y el envío 🚚\n\n_Enviado desde el catálogo en línea_`;
-    window.open(`https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`, "_blank");
-    close();
+  $("#order").onclick = async () => {
+    if (!st.psize || !okDatos()) return; const p = st.pick, cod = N.codigo("C");
+    const cli = $("#cN").value.trim().slice(0, 80), tel = $("#cT").value.trim().slice(0, 30);
+    localStorage.setItem("cat_cliente", JSON.stringify({ n: cli, t: tel }));
+    let msg = `🛍️ *Pedido ${cod} · ${S.nombre || ""}*\n\n`;
+    msg += `👗 Producto: *${p.nombre}*\n📏 Talla: *${st.psize}*\n🔢 Cantidad: ${st.qty}\n💲 Precio: ${money(p.precio)} c/u\n\n`;
+    msg += `💰 *Total: ${money(p.precio * st.qty)}*\n👤 ${cli}${tel ? " · " + tel : ""}\n\n¿Está disponible? Quiero coordinar el pago y el envío 🚚\n\n_Enviado desde el catálogo en línea_`;
+    if (N.waNum(S.whatsapp)) window.open(`https://wa.me/${N.waNum(S.whatsapp)}?text=${encodeURIComponent(msg)}`, "_blank");
+    const b = $("#order"); b.disabled = true;
+    try {
+      await db.insert("cat_pedidos", { id: N.uid(), codigo: cod, cliente: cli, telefono: tel, items: [{ id: p.id, nombre: p.nombre, precio: p.precio, talla: st.psize, cant: st.qty }], total: p.precio * st.qty, estado: "nuevo" });
+      $("#okm").textContent = "✓ Pedido " + cod + " registrado. Te responderemos por WhatsApp."; $("#okm").style.display = "block";
+      N.toast("✓ Pedido " + cod + " enviado");
+      setTimeout(close, 1800);
+    } catch(e) { N.toast("⚠️ " + e.message, 5000); }
+    finally { b.disabled = false; sheet(); }
   };
 
-  render();
+  cabecera(); renderCats(); render();
+  const recargar = async () => { try { await cargar(); cabecera(); renderCats(); render(); } catch(e) {} };
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) recargar(); });
+  if (db.modo === "demo") ["cat_productos","cat_categorias","cat_ajustes","cat_tallas"].forEach(t => db.subscribe(t, recargar));
 })();
 </script>
+
 </body>
 </html>

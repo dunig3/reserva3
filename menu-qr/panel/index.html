@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0906"><meta name="robots" content="noindex">
+<title>Panel · Menú QR</title>
+<link rel="icon" href="../icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="panel.css">
+<style>
+.ped .its{margin:8px 0 4px;font-size:13.5px}
+.ped .its div{display:flex;justify-content:space-between;padding:2px 0}
+.ped .tot{font-family:'Playfair Display',serif;font-size:20px;color:var(--gold2);font-weight:700}
+.ped.nuevo{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.12)}
+.qrs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qc{background:#fff;color:#111;border-radius:16px;padding:12px 10px;text-align:center;border:2px solid var(--gold)}
+.qc .q{display:flex;justify-content:center;margin:6px 0}
+.qc .q img,.qc .q canvas{width:120px!important;height:120px!important}
+.qc b{font-family:'Playfair Display',serif;font-size:18px;display:block}
+.qc small{font-size:10.5px;color:#555;display:block}
+@media print{
+  body{background:#fff!important}
+  body *{visibility:hidden}
+  #printArea,#printArea *{visibility:visible}
+  #printArea{position:absolute;left:0;top:0;width:100%}
+  .qrs{grid-template-columns:repeat(3,1fr);gap:8mm}
+  .qc{break-inside:avoid;border:1.5px solid #000}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="../config.js"></script>
+<script src="../app.js"></script>
+<script src="../nucleo.js"></script>
+<script src="panel.js"></script>
+<script>
+(function(){
+  const N = Nucleo, P = Panel, $ = N.$, $$ = N.$$, esc = N.esc;
+  let CATS = [], PRODS = [], filtro = "activos";
+  const money = n => N.money(n, P.ajustes.moneda || "$");
+  const hora = t => new Date(t).toLocaleString("es-VE", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  const publicoURL = mesa => N.ROOT + (mesa ? "?mesa=" + encodeURIComponent(mesa) : "");
+
+  async function cargarMenu(){
+    [CATS, PRODS] = await Promise.all([
+      P.db.select("mqr_categorias", { order: [["orden"], ["nombre"]] }),
+      P.db.select("mqr_productos", { order: [["orden"], ["nombre"]] })
+    ]);
+  }
+  async function contarNuevos(){
+    try { const r = await P.db.select("mqr_pedidos", { eq: { estado: "nuevo" }, cols: "id", limit: 99 }); P.badge("pedidos", r.length); } catch(e) {}
+  }
+
+  /* ---------------- Pedidos (tiempo real) ---------------- */
+  async function vPedidos(v){
+    const ps = await P.db.select("mqr_pedidos", { order: [["creado", false]], limit: 150 });
+    const lst = ps.filter(p => filtro === "todos" ? true : filtro === "activos" ? (p.estado === "nuevo" || p.estado === "preparando") : p.estado === filtro);
+    const n = e => ps.filter(p => p.estado === e).length;
+    P.badge("pedidos", n("nuevo"));
+    v.innerHTML = `<h2 class="t">Pedidos <span class="gold">en vivo</span></h2>
+      <div class="kp"><div class="k"><span>Nuevos</span><b class="gold">${n("nuevo")}</b></div><div class="k"><span>Preparando</span><b>${n("preparando")}</b></div></div>
+      <div class="flt">${[["activos","Activos"],["entregado","Entregados"],["cancelado","Cancelados"],["todos","Todos"]].map(([k,l]) => `<button class="chip ${filtro===k?"on":""}" data-f="${k}">${l}</button>`).join("")}</div>
+      ${lst.map(p => `<div class="box ped ${p.estado === "nuevo" ? "nuevo" : ""}">
+        <div class="rw"><b>#${esc(p.codigo)} · Mesa ${esc(p.mesa)}</b><span class="pill ${esc(p.estado)}">${esc(p.estado)}</span></div>
+        <small class="mut">${hora(p.creado)}</small>
+        <div class="its">${(p.items || []).map(i => `<div><span>${i.cant} × ${esc(i.nombre)}</span><span class="mut">${money(i.precio * i.cant)}</span></div>`).join("")}</div>
+        ${p.nota ? `<p class="small" style="color:var(--gold2)">📝 ${esc(p.nota)}</p>` : ""}
+        <div class="rw" style="margin-top:6px"><span class="tot">${money(p.total)}</span>
+        <div class="acts" style="margin:0">${p.estado === "nuevo" ? `<button class="btn sm" data-e="preparando" data-id="${p.id}">👨‍🍳 Preparando</button>` : ""}${p.estado === "preparando" ? `<button class="btn sm" data-e="entregado" data-id="${p.id}">✅ Entregado</button>` : ""}${p.estado === "nuevo" || p.estado === "preparando" ? `<button class="btn sm dark" data-e="cancelado" data-id="${p.id}">✕</button>` : ""}</div></div>
+      </div>`).join("") || `<div class="empty">No hay pedidos aquí todavía.<br>Abre el menú público en otro teléfono y haz un pedido de prueba: aparecerá al instante con sonido 🔔.<br><br><a class="btn sm" href="${esc(publicoURL(1))}" target="_blank" rel="noopener">Abrir menú (mesa 1) ↗</a></div>`}`;
+    $$("[data-f]", v).forEach(b => b.onclick = () => { filtro = b.dataset.f; vPedidos(v); });
+    $$("[data-e]", v).forEach(b => b.onclick = () => P.ocupado(b, async () => {
+      if (b.dataset.e === "cancelado" && !P.confirmar("¿Cancelar este pedido?")) return;
+      await P.db.update("mqr_pedidos", { id: b.dataset.id }, { estado: b.dataset.e }); vPedidos(v);
+    }));
+  }
+
+  /* ---------------- Menú: categorías y productos ---------------- */
+  async function vMenu(v){
+    await cargarMenu();
+    const catNom = id => (CATS.find(c => c.id === id) || {}).nombre || "Sin categoría";
+    const grupos = CATS.map(c => ({ c, ps: PRODS.filter(p => p.categoria_id === c.id) }));
+    const sinCat = PRODS.filter(p => !CATS.some(c => c.id === p.categoria_id));
+    if (sinCat.length) grupos.push({ c: { id: "", nombre: "Sin categoría" }, ps: sinCat });
+    v.innerHTML = `<h2 class="t">Tu <span class="gold">menú</span></h2>
+      <div class="box"><div class="rw"><h3 style="margin:0">Categorías</h3><button class="btn sm" id="addC">+ Categoría</button></div>
+        ${CATS.map((c, i) => `<div class="it ${c.activo ? "" : "off"}"><div class="tx"><b>${esc(c.nombre)}</b><small>${PRODS.filter(p => p.categoria_id === c.id).length} productos${c.activo ? "" : " · oculta"}</small></div>
+          <button class="ib" data-up="${i}" title="Subir" ${i ? "" : "disabled"}>▲</button><button class="ib" data-dn="${i}" title="Bajar" ${i < CATS.length - 1 ? "" : "disabled"}>▼</button><button class="ib" data-ec="${c.id}" title="Editar">✏️</button></div>`).join("") || `<p class="mut small" style="margin-top:8px">Crea tu primera categoría (ej: Arepas, Bebidas).</p>`}
+      </div>
+      <div class="rw" style="margin:18px 2px 10px"><h3 style="font-size:20px">Productos</h3><button class="btn sm" id="addP">+ Producto</button></div>
+      ${PRODS.length ? grupos.filter(g => g.ps.length).map(g => `<div class="box"><h3>${esc(g.c.nombre)}</h3>${g.ps.map(p => `<div class="it ${p.disponible ? "" : "off"}">
+          ${p.foto ? `<img class="th" src="${esc(N.img(p.foto))}" alt="" loading="lazy">` : `<div class="th"></div>`}
+          <div class="tx"><b>${esc(p.nombre)}</b><span class="pr">${money(p.precio)}</span> <small>${p.disponible ? "" : "· agotado"}</small></div>
+          <label class="sw" title="Disponible"><input type="checkbox" data-av="${p.id}" ${p.disponible ? "checked" : ""}><span></span></label>
+          <button class="ib" data-ep="${p.id}" title="Editar">✏️</button></div>`).join("")}</div>`).join("")
+        : `<div class="empty">Aún no tienes productos.<br><br><button class="btn sm" id="seed">✨ Cargar menú de ejemplo</button><br><small>Luego puedes editarlo o borrarlo.</small></div>`}`;
+    $("#addC").onclick = () => editarCat(null);
+    $("#addP").onclick = () => editarProd(null);
+    $$("[data-ec]", v).forEach(b => b.onclick = () => editarCat(CATS.find(c => c.id === b.dataset.ec)));
+    $$("[data-ep]", v).forEach(b => b.onclick = () => editarProd(PRODS.find(p => p.id === b.dataset.ep)));
+    $$("[data-av]", v).forEach(i => i.onchange = async () => { try { await P.db.update("mqr_productos", { id: i.dataset.av }, { disponible: i.checked }); N.toast(i.checked ? "✓ Disponible" : "Marcado como agotado"); vMenu(v); } catch(e) { N.toast("⚠️ " + e.message); } });
+    const mover = async (i, d) => { const a = CATS[i], b = CATS[i + d]; if (!a || !b) return; const lst = CATS.slice(); lst[i] = b; lst[i + d] = a;
+      await Promise.all(lst.map((c, k) => c.orden === k + 1 ? null : P.db.update("mqr_categorias", { id: c.id }, { orden: k + 1 }))); vMenu(v); };
+    $$("[data-up]", v).forEach(b => b.onclick = () => mover(+b.dataset.up, -1).catch(e => N.toast("⚠️ " + e.message)));
+    $$("[data-dn]", v).forEach(b => b.onclick = () => mover(+b.dataset.dn, 1).catch(e => N.toast("⚠️ " + e.message)));
+    const sd = $("#seed"); if (sd) sd.onclick = () => P.ocupado(sd, async () => {
+      const S = N.APP.seed;
+      for (const c of S.mqr_categorias) await P.db.upsert("mqr_categorias", c);
+      for (const p of S.mqr_productos) await P.db.upsert("mqr_productos", p);
+      if (!P.ajustes.nombre) await P.guardarAjustes(S.mqr_ajustes[0].datos);
+      N.toast("✓ Menú de ejemplo cargado"); vMenu(v); P.refrescarTop();
+    });
+  }
+  function editarCat(c){
+    const nuevo = !c; c = c || { id: N.uid(), nombre: "", activo: true, orden: CATS.length + 1 };
+    P.modal(`<h3>${nuevo ? "Nueva categoría" : "Editar categoría"}</h3>
+      ${P.campo("cN", "Nombre", c.nombre, 'maxlength="60" placeholder="Ej: Arepas"')}
+      ${P.sw("cA", c.activo, "Visible en el menú")}
+      <button class="btn full" id="cG">Guardar</button>
+      ${nuevo ? "" : `<button class="btn red full" id="cB" style="margin-top:8px">Eliminar categoría</button><p class="mut small" style="margin-top:6px">Sus productos quedan “sin categoría”, no se borran.</p>`}`, m => {
+      $("#cG", m).onclick = e => P.ocupado(e.currentTarget, async () => {
+        const nombre = P.v("cN"); if (!nombre) return N.toast("Escribe un nombre");
+        const row = { id: c.id, nombre, activo: P.v("cA"), orden: c.orden };
+        if (nuevo) await P.db.insert("mqr_categorias", row); else await P.db.update("mqr_categorias", { id: c.id }, row);
+        P.cerrar(); P.refrescar(); N.toast("✓ Guardado");
+      });
+      const bb = $("#cB", m); if (bb) bb.onclick = e => P.ocupado(e.currentTarget, async () => {
+        if (!P.confirmar("¿Eliminar la categoría “" + c.nombre + "”?")) return;
+        await P.db.remove("mqr_categorias", { id: c.id });
+        if (P.db.modo === "demo") for (const p of PRODS.filter(p => p.categoria_id === c.id)) await P.db.update("mqr_productos", { id: p.id }, { categoria_id: null });
+        P.cerrar(); P.refrescar();
+      });
+    });
+  }
+  function editarProd(p){
+    const nuevo = !p; p = p || { id: N.uid(), nombre: "", descripcion: "", precio: "", categoria_id: CATS[0] ? CATS[0].id : null, etiqueta: "", foto: "", disponible: true, orden: PRODS.length + 1 };
+    P.modal(`<h3>${nuevo ? "Nuevo producto" : "Editar producto"}</h3>
+      ${P.campo("pN", "Nombre", p.nombre, 'maxlength="80" placeholder="Ej: Reina pepiada"')}
+      <label for="pD">Descripción</label><textarea id="pD" maxlength="300" rows="2" placeholder="Ingredientes o detalle corto">${esc(p.descripcion || "")}</textarea>
+      <div class="row"><div>${P.campo("pP", "Precio", p.precio, 'type="number" step="0.01" min="0" inputmode="decimal"')}</div><div>${P.campo("pE", "Etiqueta (opcional)", p.etiqueta, 'maxlength="20" placeholder="Nueva, Favorita…"')}</div></div>
+      <label for="pC">Categoría</label><select id="pC"><option value="">Sin categoría</option>${CATS.map(c => `<option value="${c.id}" ${c.id === p.categoria_id ? "selected" : ""}>${esc(c.nombre)}</option>`).join("")}</select>
+      ${P.foto("pF", "Foto (se comprime sola a WebP liviano)", p.foto)}
+      ${P.sw("pA", p.disponible, "Disponible (si lo apagas, sale del menú)")}
+      <button class="btn full" id="pG">Guardar producto</button>
+      ${nuevo ? "" : `<button class="btn red full" id="pB" style="margin-top:8px">Eliminar producto</button>`}`, m => {
+      $("#pG", m).onclick = e => P.ocupado(e.currentTarget, async () => {
+        const nombre = P.v("pN"); if (!nombre) return N.toast("Escribe el nombre");
+        const foto = await P.leerFoto("pF");
+        const row = { id: p.id, nombre, descripcion: P.v("pD"), precio: Math.max(0, P.num("pP")), etiqueta: P.v("pE"), categoria_id: P.v("pC") || null, foto, disponible: P.v("pA"), orden: p.orden };
+        if (nuevo) await P.db.insert("mqr_productos", row); else await P.db.update("mqr_productos", { id: p.id }, row);
+        if (!nuevo && p.foto && p.foto !== foto) P.db.removeFile(p.foto);
+        P.cerrar(); P.refrescar(); N.toast("✓ Producto guardado");
+      });
+      const bb = $("#pB", m); if (bb) bb.onclick = e => P.ocupado(e.currentTarget, async () => {
+        if (!P.confirmar("¿Eliminar “" + p.nombre + "”?")) return;
+        await P.db.remove("mqr_productos", { id: p.id }); P.db.removeFile(p.foto); P.cerrar(); P.refrescar();
+      });
+    });
+  }
+
+  /* ---------------- Mesas y códigos QR ---------------- */
+  async function vMesas(v){
+    const n = Math.max(1, Math.min(100, parseInt(P.ajustes.mesas, 10) || 10));
+    v.innerHTML = `<h2 class="t">Mesas y <span class="gold">códigos QR</span></h2>
+      <div class="box"><div class="row"><div>${P.campo("mN", "Número de mesas", n, 'type="number" min="1" max="100" inputmode="numeric"')}</div><div style="flex:0 0 auto;padding-top:24px"><button class="btn" id="mG">Guardar</button></div></div>
+      <p class="mut small" style="margin-top:10px">Cada QR abre tu menú con el número de mesa, así el pedido llega con la mesa correcta. Imprime la hoja y pega cada código en su mesa.</p>
+      <button class="btn full" id="mPr">🖨️ Imprimir hoja de QR</button></div>
+      <div id="printArea"><div class="qrs">${Array.from({ length: n }, (_, i) => `<div class="qc"><b>Mesa ${i + 1}</b><div class="q" data-u="${esc(publicoURL(i + 1))}"></div><small>Escanea y pide · ${esc(P.ajustes.nombre || "")}</small></div>`).join("")}</div></div>
+      <p class="mut small" style="margin:14px 2px">Enlace de la mesa 1: <a href="${esc(publicoURL(1))}" target="_blank" rel="noopener">${esc(publicoURL(1))}</a></p>`;
+    $("#mG").onclick = e => P.ocupado(e.currentTarget, async () => { await P.guardarAjustes({ mesas: Math.max(1, Math.min(100, parseInt(P.v("mN"), 10) || 1)) }); N.toast("✓ Guardado"); vMesas(v); });
+    $("#mPr").onclick = () => window.print();
+    try { await N.loadScript("https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"); } catch(e) { N.toast("No se pudo cargar el generador de QR"); return; }
+    $$(".q[data-u]", v).forEach(el => { try { new QRCode(el, { text: el.dataset.u, width: 240, height: 240, colorDark: "#0b0906", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); } catch(e) {} });
+  }
+
+  /* ---------------- Ajustes del negocio ---------------- */
+  async function vAjustes(v){
+    const S = P.ajustes;
+    v.innerHTML = `<h2 class="t">Ajustes del <span class="gold">negocio</span></h2>
+      <div class="box">${P.sw("aA", S.abierto !== false, "<b>Abierto</b> · recibiendo pedidos")}</div>
+      <div class="box">
+        ${P.campo("aN", "Nombre del negocio", S.nombre, 'maxlength="60"')}
+        ${P.campo("aL", "Frase corta", S.lema, 'maxlength="80" placeholder="Ej: Sabor andino desde 1998"')}
+        ${P.campo("aC", "Ciudad o dirección", S.ciudad, 'maxlength="80"')}
+        ${P.campo("aH", "Horario", S.horario, 'maxlength="80" placeholder="Lun a Dom · 7:00 am – 10:00 pm"')}
+        ${P.campo("aW", "WhatsApp que recibe los pedidos", S.whatsapp, 'inputmode="tel" placeholder="584141234567 (58 + número, sin +)"')}
+        <div class="row"><div>${P.campo("aM", "Moneda", S.moneda || "$", 'maxlength="5"')}</div><div>${P.campo("aP", "Prefijo de pedido", S.prefijo || "P", 'maxlength="4"')}</div></div>
+        ${P.foto("aLg", "Logo (cuadrado)", S.logo, true)}
+        ${P.foto("aPt", "Foto de portada", S.portada)}
+        <button class="btn full" id="aG">Guardar ajustes</button>
+      </div>`;
+    $("#aA").onchange = async e => { try { await P.guardarAjustes({ abierto: e.target.checked }); N.toast(e.target.checked ? "✓ Abierto: recibiendo pedidos" : "🔒 Cerrado: el menú no acepta pedidos"); } catch(x) { N.toast("⚠️ " + x.message); } };
+    $("#aG").onclick = e => P.ocupado(e.currentTarget, async () => {
+      const w = N.waNum(P.v("aW")); if (w && w.length < 10) return N.toast("Revisa el WhatsApp: 58 + número (ej: 584141234567)");
+      const logo = await P.leerFoto("aLg"), portada = await P.leerFoto("aPt");
+      await P.guardarAjustes({ nombre: P.v("aN"), lema: P.v("aL"), ciudad: P.v("aC"), horario: P.v("aH"), whatsapp: w, moneda: P.v("aM") || "$", prefijo: P.v("aP").toUpperCase() || "P", logo, portada, abierto: P.v("aA") });
+      N.toast("✓ Ajustes guardados"); P.refrescarTop(); vAjustes(v);
+    });
+  }
+
+  P.iniciar({
+    tablaCheck: "mqr_productos", publico: N.ROOT + "?mesa=1",
+    async alEntrar(){
+      await P.cargarAjustes();
+      P.db.subscribe("mqr_pedidos", ev => {
+        if (ev.tipo === "insert") { N.notify("🔔 Nuevo pedido", ev.row && ev.row.mesa ? "Mesa " + ev.row.mesa + " · " + N.money(ev.row.total, P.ajustes.moneda || "$") : ""); }
+        if (P.tab === "pedidos") { const v = $("#v"); if (v && !$("#modal")) vPedidos(v); } else contarNuevos();
+      });
+      contarNuevos();
+    },
+    tabs: [
+      { id: "pedidos", ic: "🧾", lbl: "Pedidos", render: vPedidos },
+      { id: "menu", ic: "🍽️", lbl: "Menú", render: vMenu },
+      { id: "mesas", ic: "🔳", lbl: "Mesas QR", render: vMesas },
+      { id: "ajustes", ic: "⚙️", lbl: "Ajustes", render: vAjustes }
+    ]
+  });
+})();
+</script>
+</body>
+</html>

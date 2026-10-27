@@ -1,1 +1,1 @@
-{"name":"Arepera El Buen Sabor · Menú QR","short_name":"Menú QR","start_url":"./?mesa=1","display":"standalone","background_color":"#0b0906","theme_color":"#0b0906","lang":"es-VE","icons":[{"src":"../vendedor/icon.png","sizes":"512x512","type":"image/png","purpose":"any"}]}
+{"name": "Menú QR", "short_name": "Menú QR", "start_url": "./?mesa=1", "display": "standalone", "background_color": "#0b0906", "theme_color": "#0b0906", "lang": "es-VE", "icons": [{"src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}]}

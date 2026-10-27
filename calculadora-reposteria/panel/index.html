@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0906"><meta name="robots" content="noindex">
+<title>Mi cuenta · Calculadora para reposteras</title>
+<link rel="icon" href="../icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="panel.css">
+<style>
+.rec .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.rec .nums div{border:1px solid var(--line);border-radius:12px;padding:8px 6px;text-align:center;background:#0f0c08}
+.rec .nums small{display:block;font-size:10.5px;color:var(--mut)}
+.rec .nums b{font-size:15px}
+.rec .nums .g b{color:var(--gold2)}
+.u{font-size:11.5px;color:var(--gold2)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="../config.js"></script>
+<script src="../app.js"></script>
+<script src="../nucleo.js"></script>
+<script src="panel.js"></script>
+<script>
+(function(){
+  const N = Nucleo, P = Panel, A = N.APP, K = A.calc, $ = N.$, $$ = N.$$, esc = N.esc;
+  let ING = [], RECS = [];
+  const money = (n, d) => (P.ajustes.moneda || "$") + (isFinite(n) ? n : 0).toFixed(d || 2);
+  const unit = g => { const u = K.unitario(g); return u < 0.1 ? money(u, 4) : money(u); };
+  async function cargar(){ [ING, RECS] = await Promise.all([P.db.select("rep_ingredientes", { order: [["nombre"]] }), P.db.select("rep_recetas", { order: [["actualizado", false]] })]); }
+  // Los ajustes son de cada usuaria (una fila por cuenta)
+  async function cargarAj(){ const r = await P.db.select("rep_ajustes", { limit: 1 }); P.ajustes = Object.assign({}, A.defaults.ajustes, (r[0] && r[0].datos) || {}); P.ajustes.nombre = P.ajustes.negocio; }
+  async function guardarAj(d){ P.ajustes = Object.assign({}, P.ajustes, d); const datos = Object.assign({}, P.ajustes); delete datos.nombre; P.ajustes.nombre = P.ajustes.negocio; await P.db.upsert("rep_ajustes", { id: 1, user_id: P.user.id, datos, actualizado: new Date().toISOString() }, ["user_id"]); }
+
+  /* ---------------- Ingredientes (lista de precios) ---------------- */
+  async function vIngredientes(v){
+    await cargar();
+    const usos = id => RECS.filter(r => (r.items || []).some(i => i.ing === id)).length;
+    v.innerHTML = `<div class="rw"><h2 class="t">Mis <span class="gold">ingredientes</span></h2><button class="btn sm" id="addG">+ Ingrediente</button></div>
+      <p class="mut small" style="margin:-6px 2px 12px">Anota el precio del paquete que compras. Si sube un precio, cámbialo aquí una sola vez: <b>todas tus recetas se recalculan solas</b>.</p>
+      ${ING.length ? `<div class="box">${ING.map(g => `<div class="it"><div class="tx"><b>${esc(g.nombre)}</b><small>${esc(String(Number(g.cantidad)))} ${esc(g.unidad)} → <span class="pr">${money(Number(g.precio))}</span></small><br><span class="u">${unit(g)} por ${esc(g.unidad)}${usos(g.id) ? " · en " + usos(g.id) + " receta" + (usos(g.id) > 1 ? "s" : "") : ""}</span></div>
+        <button class="ib" data-eg="${g.id}">✏️</button></div>`).join("")}</div>`
+      : `<div class="empty">Tu lista está vacía.<br><br><button class="btn sm" id="seed">✨ Cargar ingredientes de ejemplo</button></div>`}`;
+    $("#addG").onclick = () => editarIng(null);
+    $$("[data-eg]", v).forEach(b => b.onclick = () => editarIng(ING.find(g => g.id === b.dataset.eg)));
+    const sd = $("#seed"); if (sd) sd.onclick = () => P.ocupado(sd, async () => {
+      for (const g of A.defaults.ingredientes) await P.db.upsert("rep_ingredientes", Object.assign({}, g, { user_id: P.user.id }));
+      await P.db.upsert("rep_recetas", Object.assign({}, A.defaults.receta, { user_id: P.user.id, actualizado: new Date().toISOString() }));
+      N.toast("✓ Ingredientes y receta de ejemplo cargados"); vIngredientes(v);
+    });
+  }
+  function editarIng(g){
+    const nuevo = !g; g = g || { id: N.uid(), nombre: "", unidad: "g", cantidad: 1000, precio: "" };
+    P.modal(`<h3>${nuevo ? "Nuevo ingrediente" : "Editar ingrediente"}</h3>
+      ${P.campo("gN", "Nombre", g.nombre, 'maxlength="80" placeholder="Ej: Harina de trigo"')}
+      <div class="row"><div>${P.campo("gC", "Trae (cantidad)", g.cantidad, 'type="number" min="0" step="any" inputmode="decimal"')}</div>
+      <div><label for="gU">Unidad</label><select id="gU">${[["g","gramos (g)"],["kg","kilos (kg)"],["ml","mililitros (ml)"],["l","litros (l)"],["und","unidades"]].map(([k,l]) => `<option value="${k}" ${g.unidad === k ? "selected" : ""}>${l}</option>`).join("")}</select></div></div>
+      ${P.campo("gP", "Precio del paquete", g.precio, 'type="number" min="0" step="0.01" inputmode="decimal"')}
+      <p class="okt" id="gX"></p>
+      <button class="btn full" id="gG">Guardar</button>
+      ${nuevo ? "" : `<button class="btn red full" id="gB" style="margin-top:8px">Eliminar ingrediente</button>`}`, m => {
+      const prev = () => { const t = { cantidad: P.num("gC"), precio: P.num("gP"), unidad: P.v("gU") }; $("#gX", m).textContent = t.cantidad > 0 ? "= " + unit(t) + " por " + t.unidad : ""; };
+      ["gC", "gP", "gU"].forEach(id => $("#" + id, m).addEventListener("input", prev)); prev();
+      $("#gG", m).onclick = e => P.ocupado(e.currentTarget, async () => {
+        const nombre = P.v("gN"), cantidad = P.num("gC"); if (!nombre) return N.toast("Escribe el nombre"); if (!(cantidad > 0)) return N.toast("La cantidad debe ser mayor que 0");
+        const row = { id: g.id, user_id: P.user.id, nombre, unidad: P.v("gU"), cantidad, precio: Math.max(0, P.num("gP")) };
+        if (nuevo) await P.db.insert("rep_ingredientes", row); else await P.db.update("rep_ingredientes", { id: g.id }, row);
+        P.cerrar(); P.refrescar(); N.toast(nuevo ? "✓ Ingrediente agregado" : "✓ Precio actualizado · recetas recalculadas");
+      });
+      const bb = $("#gB", m); if (bb) bb.onclick = e => P.ocupado(e.currentTarget, async () => {
+        if (!P.confirmar("¿Eliminar “" + g.nombre + "”? En las recetas que lo usan quedará con costo 0.")) return;
+        await P.db.remove("rep_ingredientes", { id: g.id }); P.cerrar(); P.refrescar();
+      });
+    });
+  }
+
+  /* ---------------- Recetas ---------------- */
+  async function vRecetas(v){
+    await cargar();
+    v.innerHTML = `<div class="rw"><h2 class="t">Mis <span class="gold">recetas</span></h2><a class="btn sm" href="../?nueva=1">+ Nueva</a></div>
+      ${RECS.map(r => { const n = K.numeros(r, ING, P.ajustes.redondeo); const falt = (r.items || []).filter(i => i.ing && !ING.some(g => g.id === i.ing)).length;
+        return `<div class="box rec"><div class="rw"><b style="font-size:16px">${esc(r.nombre)}</b><small class="mut">${r.porciones} porc. · ${r.margen}%</small></div>
+        <small class="mut">${(r.items || []).length} ingredientes${falt ? ` · ⚠️ ${falt} ya no está en tu lista` : ""}</small>
+        <div class="nums"><div><small>Costo</small><b>${money(n.cost)}</b></div><div class="g"><small>Por porción</small><b>${money(n.per)}</b></div><div><small>Torta</small><b>${money(n.total)}</b></div></div>
+        <div class="acts"><a class="btn sm" href="../?receta=${encodeURIComponent(r.id)}">Abrir en la calculadora</a><button class="btn sm dark" data-dup="${r.id}">Duplicar</button><button class="btn sm red" data-del="${r.id}">🗑</button></div></div>`; }).join("")
+      || `<div class="empty">Aún no tienes recetas guardadas.<br>Abre la calculadora, arma tu receta y toca “Guardar”.<br><br><a class="btn sm" href="../?nueva=1">Abrir calculadora</a></div>`}`;
+    $$("[data-del]", v).forEach(b => b.onclick = () => P.ocupado(b, async () => { if (!P.confirmar("¿Borrar esta receta?")) return; await P.db.remove("rep_recetas", { id: b.dataset.del }); vRecetas(v); }));
+    $$("[data-dup]", v).forEach(b => b.onclick = () => P.ocupado(b, async () => { const r = RECS.find(x => x.id === b.dataset.dup); await P.db.insert("rep_recetas", { id: N.uid(), user_id: P.user.id, nombre: (r.nombre + " (copia)").slice(0, 80), items: r.items, margen: r.margen, porciones: r.porciones, actualizado: new Date().toISOString() }); vRecetas(v); }));
+  }
+
+  /* ---------------- Ajustes ---------------- */
+  async function vAjustes(v){
+    const S = P.ajustes;
+    v.innerHTML = `<h2 class="t">Mis <span class="gold">ajustes</span></h2><div class="box">
+      ${P.campo("aN", "Nombre de mi negocio", S.negocio, 'maxlength="60"')}
+      <div class="row"><div>${P.campo("aM", "Moneda", S.moneda || "$", 'maxlength="5"')}</div><div><label for="aR">Redondear porción a</label><select id="aR">${[0.01, 0.05, 0.1, 0.25, 0.5, 1].map(x => `<option value="${x}" ${+S.redondeo === x ? "selected" : ""}>${x}</option>`).join("")}</select></div></div>
+      <div class="row"><div>${P.campo("aG", "Margen por defecto (%)", S.margen, 'type="number" min="0" max="1000" inputmode="numeric"')}</div><div>${P.campo("aP", "Porciones por defecto", S.porciones, 'type="number" min="1" max="500" inputmode="numeric"')}</div></div>
+      ${P.campo("aW", "WhatsApp para compartir (opcional)", S.whatsapp, 'inputmode="tel" placeholder="584141234567"')}
+      <button class="btn full" id="aS">Guardar ajustes</button></div>`;
+    $("#aS").onclick = e => P.ocupado(e.currentTarget, async () => {
+      await guardarAj({ negocio: P.v("aN"), moneda: P.v("aM") || "$", redondeo: parseFloat(P.v("aR")) || 0.05, margen: Math.max(0, Math.min(1000, P.num("aG"))), porciones: Math.max(1, Math.min(500, Math.round(P.num("aP")) || 12)), whatsapp: N.waNum(P.v("aW")) });
+      N.toast("✓ Ajustes guardados"); P.refrescarTop(); vAjustes(v);
+    });
+  }
+
+  P.iniciar({
+    tablaCheck: "rep_ingredientes", publico: "../",
+    async alEntrar(){ await cargarAj(); },
+    tabs: [
+      { id: "ingredientes", ic: "🧂", lbl: "Ingredientes", render: vIngredientes },
+      { id: "recetas", ic: "🎂", lbl: "Recetas", render: vRecetas },
+      { id: "ajustes", ic: "⚙️", lbl: "Ajustes", render: vAjustes },
+      { id: "calc", ic: "🧮", lbl: "Calculadora", render: async () => { location.href = "../"; } }
+    ]
+  });
+})();
+</script>
+</body>
+</html>

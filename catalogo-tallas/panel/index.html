@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0906"><meta name="robots" content="noindex">
+<title>Panel · Catálogo</title>
+<link rel="icon" href="../icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="panel.css">
+<style>
+.ped .its{margin:8px 0 4px;font-size:13.5px}.ped .its div{display:flex;justify-content:space-between;padding:2px 0}
+.ped .tot{font-family:'Playfair Display',serif;font-size:20px;color:var(--gold2);font-weight:700}
+.ped.nuevo{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.12)}
+.tl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tl .t{border:1px solid var(--line);border-radius:13px;padding:6px;text-align:center;background:#0f0c08}
+.tl .t.on{border-color:var(--gold);background:rgba(212,175,55,.12)}
+.tl .t button{width:100%;background:none;border:0;color:var(--txt);font-weight:700;font-size:15px;padding:4px 0}
+.tl .t input{padding:6px;font-size:12.5px;text-align:center;border-radius:9px}
+.tl .t:not(.on) input{visibility:hidden}
+.th2{width:56px;height:68px;border-radius:12px;object-fit:cover;flex:0 0 56px;background:#221a10;border:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="../config.js"></script>
+<script src="../app.js"></script>
+<script src="../nucleo.js"></script>
+<script src="panel.js"></script>
+<script>
+(function(){
+  const N = Nucleo, P = Panel, $ = N.$, $$ = N.$$, esc = N.esc;
+  let CATS = [], SETS = [], PRODS = [], filtro = "activos", fcat = "";
+  const money = n => N.money0(n, P.ajustes.moneda || "$");
+  const hora = t => new Date(t).toLocaleString("es-VE", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  const telWa = t => { let d = N.waNum(t); if (d.startsWith("0")) d = "58" + d.slice(1); else if (d.length === 10) d = "58" + d; return d; };
+  const uniq = a => a.filter((x, i) => a.indexOf(x) === i);
+  async function cargar(){ [SETS, CATS, PRODS] = await Promise.all([P.db.select("cat_tallas", { order: [["orden"], ["nombre"]] }), P.db.select("cat_categorias", { order: [["orden"], ["nombre"]] }), P.db.select("cat_productos", { order: [["orden"], ["nombre"]] })]); }
+  async function contarNuevos(){ try { const r = await P.db.select("cat_pedidos", { eq: { estado: "nuevo" }, cols: "id", limit: 99 }); P.badge("pedidos", r.length); } catch(e) {} }
+
+  /* ---------------- Pedidos ---------------- */
+  const SIG = { nuevo: ["confirmado", "✅ Confirmar"], confirmado: ["enviado", "🚚 Enviado"], enviado: ["entregado", "📦 Entregado"] };
+  async function vPedidos(v){
+    const ps = await P.db.select("cat_pedidos", { order: [["creado", false]], limit: 200 });
+    const lst = ps.filter(p => filtro === "todos" ? true : filtro === "activos" ? ["nuevo", "confirmado", "enviado"].includes(p.estado) : p.estado === filtro);
+    P.badge("pedidos", ps.filter(p => p.estado === "nuevo").length);
+    v.innerHTML = `<h2 class="t">Pedidos</h2>
+      <div class="kp"><div class="k"><span>Nuevos</span><b class="gold">${ps.filter(p => p.estado === "nuevo").length}</b></div><div class="k"><span>Vendido (confirmados)</span><b>${money(ps.filter(p => ["confirmado","enviado","entregado"].includes(p.estado)).reduce((a, p) => a + Number(p.total), 0))}</b></div></div>
+      <div class="flt">${[["activos","Activos"],["entregado","Entregados"],["cancelado","Cancelados"],["todos","Todos"]].map(([k,l]) => `<button class="chip ${filtro===k?"on":""}" data-f="${k}">${l}</button>`).join("")}</div>
+      ${lst.map(p => `<div class="box ped ${p.estado === "nuevo" ? "nuevo" : ""}"><div class="rw"><b>#${esc(p.codigo)} · ${esc(p.cliente || "Cliente")}</b><span class="pill ${esc(p.estado)}">${esc(p.estado)}</span></div>
+        <small class="mut">${hora(p.creado)}${p.telefono ? " · 📱 " + esc(p.telefono) : ""}</small>
+        <div class="its">${(p.items || []).map(i => `<div><span>${i.cant} × ${esc(i.nombre)} · talla <b>${esc(i.talla)}</b></span><span class="mut">${money(i.precio * i.cant)}</span></div>`).join("")}</div>
+        <div class="rw"><span class="tot">${money(p.total)}</span><div class="acts" style="margin:0">
+          ${SIG[p.estado] ? `<button class="btn sm" data-e="${SIG[p.estado][0]}" data-id="${p.id}">${SIG[p.estado][1]}</button>` : ""}
+          ${["nuevo","confirmado"].includes(p.estado) ? `<button class="btn sm dark" data-e="cancelado" data-id="${p.id}">✕</button>` : ""}
+          ${p.telefono ? `<a class="btn sm dark" target="_blank" rel="noopener" href="https://wa.me/${telWa(p.telefono)}?text=${encodeURIComponent("Hola " + (p.cliente || "") + ", te escribimos de " + (P.ajustes.nombre || "") + " por tu pedido " + p.codigo + ".")}">💬</a>` : ""}</div></div>
+      </div>`).join("") || `<div class="empty">No hay pedidos aquí todavía.<br>Cuando un cliente pida desde tu catálogo, aparecerá al instante con sonido 🔔.<br><br><a class="btn sm" href="${esc(N.ROOT)}" target="_blank" rel="noopener">Abrir catálogo ↗</a></div>`}`;
+    $$("[data-f]", v).forEach(b => b.onclick = () => { filtro = b.dataset.f; vPedidos(v); });
+    $$("[data-e]", v).forEach(b => b.onclick = () => P.ocupado(b, async () => {
+      const ped = ps.find(x => x.id === b.dataset.id);
+      if (b.dataset.e === "cancelado" && !P.confirmar("¿Cancelar este pedido?")) return;
+      await P.db.update("cat_pedidos", { id: ped.id }, { estado: b.dataset.e });
+      if (b.dataset.e === "confirmado") await descontar(ped);
+      vPedidos(v);
+    }));
+  }
+  /* Al confirmar, descuenta del stock (solo en tallas donde llevas stock) */
+  async function descontar(ped){
+    await cargar();
+    for (const it of ped.items || []) {
+      const p = PRODS.find(x => x.id === it.id); if (!p) continue;
+      let cambio = false; const tallas = (p.tallas || []).map(t => { if (t.t === it.talla && t.stock != null) { cambio = true; return { t: t.t, stock: Math.max(0, Number(t.stock) - it.cant) }; } return t; });
+      if (cambio) await P.db.update("cat_productos", { id: p.id }, { tallas });
+    }
+  }
+
+  /* ---------------- Productos ---------------- */
+  async function vProductos(v){
+    await cargar();
+    const lst = PRODS.filter(p => !fcat || p.categoria_id === fcat);
+    const catNom = id => (CATS.find(c => c.id === id) || {}).nombre || "Sin categoría";
+    v.innerHTML = `<div class="rw"><h2 class="t">Productos</h2><button class="btn sm" id="addP">+ Producto</button></div>
+      ${CATS.length ? `<div class="flt"><button class="chip ${fcat ? "" : "on"}" data-c="">Todos (${PRODS.length})</button>${CATS.map(c => `<button class="chip ${fcat === c.id ? "on" : ""}" data-c="${c.id}">${esc(c.nombre)}</button>`).join("")}</div>` : ""}
+      ${PRODS.length ? `<div class="box">${lst.map(p => { const ts = (p.tallas || []); return `<div class="it ${p.activo ? "" : "off"}">
+        ${p.fotos && p.fotos[0] ? `<img class="th2" src="${esc(N.img(p.fotos[0]))}" alt="" loading="lazy">` : `<div class="th2"></div>`}
+        <div class="tx"><b>${p.nuevo ? "🆕 " : ""}${esc(p.nombre)}</b><span class="pr">${money(p.precio)}</span> <small>· ${esc(catNom(p.categoria_id))}</small><br>
+        <small>${ts.map(t => esc(t.t) + (t.stock != null ? `(${t.stock})` : "")).join(" · ") || "Sin tallas"}${p.activo ? "" : " · oculto"}</small></div>
+        <label class="sw" title="Activo"><input type="checkbox" data-av="${p.id}" ${p.activo ? "checked" : ""}><span></span></label>
+        <button class="ib" data-ep="${p.id}">✏️</button></div>`; }).join("") || `<p class="mut small">No hay productos en esta categoría.</p>`}</div>`
+      : `<div class="empty">Aún no tienes productos.<br><br><button class="btn sm" id="seed">✨ Cargar catálogo de ejemplo</button><br><small>Primero crea categorías y tallas, o carga el ejemplo y edítalo.</small></div>`}`;
+    $("#addP").onclick = () => editarProd(null);
+    $$("[data-c]", v).forEach(b => b.onclick = () => { fcat = b.dataset.c; vProductos(v); });
+    $$("[data-ep]", v).forEach(b => b.onclick = () => editarProd(PRODS.find(p => p.id === b.dataset.ep)));
+    $$("[data-av]", v).forEach(i => i.onchange = async () => { try { await P.db.update("cat_productos", { id: i.dataset.av }, { activo: i.checked }); N.toast(i.checked ? "✓ Visible en el catálogo" : "Oculto del catálogo"); vProductos(v); } catch(e) { N.toast("⚠️ " + e.message); } });
+    const sd = $("#seed"); if (sd) sd.onclick = () => P.ocupado(sd, async () => {
+      const S = N.APP.seed;
+      for (const t of S.cat_tallas) await P.db.upsert("cat_tallas", t);
+      for (const c of S.cat_categorias) await P.db.upsert("cat_categorias", c);
+      for (const p of S.cat_productos) await P.db.upsert("cat_productos", p);
+      if (!P.ajustes.nombre) await P.guardarAjustes(S.cat_ajustes[0].datos);
+      N.toast("✓ Catálogo de ejemplo cargado"); P.refrescarTop(); vProductos(v);
+    });
+  }
+  function editarProd(p){
+    const nuevo = !p;
+    p = p || { id: N.uid(), nombre: "", descripcion: "", precio: "", categoria_id: fcat || (CATS[0] ? CATS[0].id : null), tallas: [], fotos: [], nuevo: true, activo: true, orden: PRODS.length + 1 };
+    const tl = {}; (p.tallas || []).forEach(t => tl[t.t] = { on: true, stock: t.stock });
+    let fotos = (p.fotos || []).slice(), quitadas = [], nuevas = [];
+    const setDe = cid => { const c = CATS.find(x => x.id === cid); const s = c && SETS.find(x => x.id === c.tallas_id); return s ? s.tallas : []; };
+    P.modal(`<h3>${nuevo ? "Nuevo producto" : "Editar producto"}</h3>
+      ${P.campo("pN", "Nombre", p.nombre, 'maxlength="80" placeholder="Ej: Vestido rojo floral"')}
+      <label for="pD">Descripción (opcional)</label><textarea id="pD" maxlength="400" rows="2">${esc(p.descripcion || "")}</textarea>
+      <div class="row"><div>${P.campo("pP", "Precio", p.precio, 'type="number" step="0.01" min="0" inputmode="decimal"')}</div>
+        <div><label for="pC">Categoría</label><select id="pC"><option value="">Sin categoría</option>${CATS.map(c => `<option value="${c.id}" ${c.id === p.categoria_id ? "selected" : ""}>${esc(c.nombre)}</option>`).join("")}</select></div></div>
+      <label>Tallas disponibles <span class="mut">(toca para activar · stock opcional, vacío = sin control)</span></label><div class="tl" id="pT"></div>
+      <div class="row" style="margin-top:8px"><input id="pTx" maxlength="8" placeholder="Otra talla (ej: Única, 42)"><button class="btn sm dark" id="pTa" style="flex:0 0 auto">+ Agregar</button></div>
+      <label>Fotos (hasta 8 · se comprimen solas a WebP)</label><div class="fotos" id="pFs"></div>
+      <input type="file" id="pF" accept="image/*" multiple style="margin-top:8px">
+      ${P.sw("pNv", p.nuevo, "Etiqueta “Nuevo”")}${P.sw("pA", p.activo, "Visible en el catálogo")}
+      <button class="btn full" id="pG">Guardar producto</button>
+      ${nuevo ? "" : `<button class="btn red full" id="pB" style="margin-top:8px">Eliminar producto</button>`}`, m => {
+      const pintarT = () => {
+        const lista = uniq(setDe(P.v("pC")).concat(Object.keys(tl)));
+        $("#pT", m).innerHTML = lista.map(t => { const x = tl[t] || {}; return `<div class="t ${x.on ? "on" : ""}" data-t="${esc(t)}"><button type="button">${esc(t)}</button><input type="number" min="0" inputmode="numeric" placeholder="stock" value="${x.stock == null ? "" : x.stock}"></div>`; }).join("") || `<p class="mut small">Elige una categoría con juego de tallas o agrega tallas a mano.</p>`;
+        $$("#pT .t", m).forEach(el => {
+          el.querySelector("button").onclick = () => { const t = el.dataset.t; tl[t] = tl[t] || { stock: null }; tl[t].on = !tl[t].on; pintarT(); };
+          el.querySelector("input").oninput = e => { const t = el.dataset.t; tl[t] = tl[t] || { on: true }; tl[t].stock = e.target.value === "" ? null : Math.max(0, parseInt(e.target.value, 10) || 0); };
+        });
+      };
+      const pintarF = () => {
+        $("#pFs", m).innerHTML = fotos.map((u, i) => `<div class="f"><img src="${esc(N.img(u))}" alt=""><button type="button" data-qf="${i}">×</button></div>`).join("") + nuevas.map((f, i) => `<div class="f"><img src="${URL.createObjectURL(f)}" alt=""><button type="button" data-qn="${i}">×</button></div>`).join("");
+        $$("[data-qf]", m).forEach(b => b.onclick = () => { quitadas.push(fotos[+b.dataset.qf]); fotos.splice(+b.dataset.qf, 1); pintarF(); });
+        $$("[data-qn]", m).forEach(b => b.onclick = () => { nuevas.splice(+b.dataset.qn, 1); pintarF(); });
+      };
+      pintarT(); pintarF();
+      $("#pC", m).onchange = pintarT;
+      $("#pTa", m).onclick = () => { const t = P.v("pTx").toUpperCase(); if (!t) return; tl[t] = { on: true, stock: null }; $("#pTx", m).value = ""; pintarT(); };
+      $("#pF", m).onchange = e => { nuevas = nuevas.concat(Array.from(e.target.files || [])).slice(0, Math.max(0, 8 - fotos.length)); e.target.value = ""; pintarF(); };
+      $("#pG", m).onclick = e => P.ocupado(e.currentTarget, async () => {
+        const nombre = P.v("pN"); if (!nombre) return N.toast("Escribe el nombre");
+        const tallas = Object.keys(tl).filter(t => tl[t].on).map(t => ({ t, stock: tl[t].stock == null ? null : tl[t].stock }));
+        if (!tallas.length) return N.toast("Activa al menos una talla");
+        const subidas = []; for (const f of nuevas) subidas.push(await P.db.upload(await N.comprimir(f)));
+        const row = { id: p.id, nombre, descripcion: P.v("pD"), precio: Math.max(0, P.num("pP")), categoria_id: P.v("pC") || null, tallas, fotos: fotos.concat(subidas).slice(0, 8), nuevo: P.v("pNv"), activo: P.v("pA"), orden: p.orden };
+        if (nuevo) await P.db.insert("cat_productos", row); else await P.db.update("cat_productos", { id: p.id }, row);
+        quitadas.forEach(u => P.db.removeFile(u));
+        P.cerrar(); P.refrescar(); N.toast("✓ Producto guardado");
+      });
+      const bb = $("#pB", m); if (bb) bb.onclick = e => P.ocupado(e.currentTarget, async () => {
+        if (!P.confirmar("¿Eliminar “" + p.nombre + "”?")) return;
+        await P.db.remove("cat_productos", { id: p.id }); (p.fotos || []).forEach(u => P.db.removeFile(u)); P.cerrar(); P.refrescar();
+      });
+    });
+  }
+
+  /* ---------------- Categorías y juegos de tallas ---------------- */
+  async function vCategorias(v){
+    await cargar();
+    const setNom = id => (SETS.find(s => s.id === id) || {}).nombre || "—";
+    v.innerHTML = `<h2 class="t">Categorías y <span class="gold">tallas</span></h2>
+      <div class="box"><div class="rw"><h3 style="margin:0">Categorías</h3><button class="btn sm" id="addC">+ Categoría</button></div>
+        ${CATS.map((c, i) => `<div class="it"><div class="tx"><b>${esc(c.nombre)}</b><small>Tallas: ${esc(setNom(c.tallas_id))} · ${PRODS.filter(p => p.categoria_id === c.id).length} productos</small></div>
+        <button class="ib" data-up="${i}" ${i ? "" : "disabled"}>▲</button><button class="ib" data-ec="${c.id}">✏️</button></div>`).join("") || `<p class="mut small" style="margin-top:8px">Ej: Camisas, Vestidos, Zapatos.</p>`}</div>
+      <div class="box"><div class="rw"><h3 style="margin:0">Juegos de tallas</h3><button class="btn sm" id="addT">+ Juego</button></div>
+        <p class="mut small" style="margin-top:6px">Ej: “Ropa” = S, M, L, XL · “Calzado” = 36 al 41. Cada categoría usa un juego.</p>
+        ${SETS.map(s => `<div class="it"><div class="tx"><b>${esc(s.nombre)}</b><small>${(s.tallas || []).map(esc).join(" · ")}</small></div><button class="ib" data-et="${s.id}">✏️</button></div>`).join("") || ""}</div>`;
+    $("#addC").onclick = () => editarCat(null); $("#addT").onclick = () => editarSet(null);
+    $$("[data-ec]", v).forEach(b => b.onclick = () => editarCat(CATS.find(c => c.id === b.dataset.ec)));
+    $$("[data-et]", v).forEach(b => b.onclick = () => editarSet(SETS.find(s => s.id === b.dataset.et)));
+    $$("[data-up]", v).forEach(b => b.onclick = () => P.ocupado(b, async () => { const i = +b.dataset.up, l = CATS.slice(); [l[i - 1], l[i]] = [l[i], l[i - 1]]; await Promise.all(l.map((c, k) => c.orden === k + 1 ? null : P.db.update("cat_categorias", { id: c.id }, { orden: k + 1 }))); vCategorias(v); }));
+  }
+  function editarCat(c){
+    const nuevo = !c; c = c || { id: N.uid(), nombre: "", tallas_id: SETS[0] ? SETS[0].id : null, orden: CATS.length + 1 };
+    P.modal(`<h3>${nuevo ? "Nueva categoría" : "Editar categoría"}</h3>${P.campo("cN", "Nombre", c.nombre, 'maxlength="40"')}
+      <label for="cT">Juego de tallas</label><select id="cT"><option value="">Ninguno</option>${SETS.map(s => `<option value="${s.id}" ${s.id === c.tallas_id ? "selected" : ""}>${esc(s.nombre)} (${(s.tallas || []).join(", ")})</option>`).join("")}</select>
+      <button class="btn full" id="cG">Guardar</button>${nuevo ? "" : `<button class="btn red full" id="cB" style="margin-top:8px">Eliminar categoría</button><p class="mut small" style="margin-top:6px">Sus productos quedan “sin categoría”.</p>`}`, m => {
+      $("#cG", m).onclick = e => P.ocupado(e.currentTarget, async () => { const nombre = P.v("cN"); if (!nombre) return N.toast("Escribe un nombre");
+        const row = { id: c.id, nombre, tallas_id: P.v("cT") || null, orden: c.orden };
+        if (nuevo) await P.db.insert("cat_categorias", row); else await P.db.update("cat_categorias", { id: c.id }, row); P.cerrar(); P.refrescar(); });
+      const bb = $("#cB", m); if (bb) bb.onclick = e => P.ocupado(e.currentTarget, async () => { if (!P.confirmar("¿Eliminar la categoría?")) return; await P.db.remove("cat_categorias", { id: c.id });
+        if (P.db.modo === "demo") for (const p of PRODS.filter(p => p.categoria_id === c.id)) await P.db.update("cat_productos", { id: p.id }, { categoria_id: null }); P.cerrar(); P.refrescar(); });
+    });
+  }
+  function editarSet(s){
+    const nuevo = !s; s = s || { id: N.uid(), nombre: "", tallas: [], orden: SETS.length + 1 };
+    P.modal(`<h3>${nuevo ? "Nuevo juego de tallas" : "Editar juego de tallas"}</h3>${P.campo("tN", "Nombre", s.nombre, 'maxlength="40" placeholder="Ej: Ropa"')}
+      ${P.campo("tL", "Tallas separadas por coma", (s.tallas || []).join(", "), 'placeholder="S, M, L, XL"')}
+      <button class="btn full" id="tG">Guardar</button>${nuevo ? "" : `<button class="btn red full" id="tB" style="margin-top:8px">Eliminar juego</button>`}`, m => {
+      $("#tG", m).onclick = e => P.ocupado(e.currentTarget, async () => { const nombre = P.v("tN"), tallas = uniq(P.v("tL").split(/[,;]+/).map(x => x.trim().toUpperCase()).filter(Boolean)).slice(0, 30);
+        if (!nombre || !tallas.length) return N.toast("Escribe el nombre y al menos una talla");
+        const row = { id: s.id, nombre, tallas, orden: s.orden };
+        if (nuevo) await P.db.insert("cat_tallas", row); else await P.db.update("cat_tallas", { id: s.id }, row); P.cerrar(); P.refrescar(); });
+      const bb = $("#tB", m); if (bb) bb.onclick = e => P.ocupado(e.currentTarget, async () => { if (!P.confirmar("¿Eliminar este juego de tallas?")) return; await P.db.remove("cat_tallas", { id: s.id });
+        if (P.db.modo === "demo") for (const c of CATS.filter(c => c.tallas_id === s.id)) await P.db.update("cat_categorias", { id: c.id }, { tallas_id: null }); P.cerrar(); P.refrescar(); });
+    });
+  }
+
+  /* ---------------- Ajustes ---------------- */
+  async function vAjustes(v){
+    const S = P.ajustes;
+    v.innerHTML = `<h2 class="t">Ajustes de la <span class="gold">tienda</span></h2><div class="box">
+      ${P.campo("aN", "Nombre de la tienda", S.nombre, 'maxlength="60"')}
+      ${P.campo("aS", "Debajo del nombre", S.subtitulo, 'maxlength="40" placeholder="Ropa · Calzado"')}
+      ${P.campo("aL", "Frase del banner", S.lema, 'maxlength="90"')}
+      ${P.campo("aI", "Insignia del banner", S.insignia, 'maxlength="24" placeholder="Temporada 2026"')}
+      ${P.campo("aW", "WhatsApp que recibe los pedidos", S.whatsapp, 'inputmode="tel" placeholder="584141234567 (58 + número, sin +)"')}
+      ${P.campo("aE", "Texto de envíos y pagos", S.envios, 'maxlength="120" placeholder="🚚 Envíos a toda Venezuela · Pago móvil, Zelle o efectivo"')}
+      ${P.campo("aM", "Moneda", S.moneda || "$", 'maxlength="5"')}
+      ${P.foto("aLg", "Logo (cuadrado)", S.logo, true)}
+      ${P.foto("aB", "Banner", S.banner)}
+      <button class="btn full" id="aG">Guardar ajustes</button></div>`;
+    $("#aG").onclick = e => P.ocupado(e.currentTarget, async () => {
+      const w = N.waNum(P.v("aW")); if (w && w.length < 10) return N.toast("Revisa el WhatsApp: 58 + número (ej: 584141234567)");
+      const logo = await P.leerFoto("aLg"), banner = await P.leerFoto("aB");
+      await P.guardarAjustes({ nombre: P.v("aN"), subtitulo: P.v("aS"), lema: P.v("aL"), insignia: P.v("aI"), whatsapp: w, envios: P.v("aE"), moneda: P.v("aM") || "$", logo, banner });
+      N.toast("✓ Ajustes guardados"); P.refrescarTop(); vAjustes(v);
+    });
+  }
+
+  P.iniciar({
+    tablaCheck: "cat_productos",
+    async alEntrar(){
+      await P.cargarAjustes();
+      P.db.subscribe("cat_pedidos", ev => {
+        if (ev.tipo === "insert" && ev.row) N.notify("🔔 Nuevo pedido", (ev.row.cliente || "") + " · " + N.money0(ev.row.total, P.ajustes.moneda || "$"));
+        if (P.tab === "pedidos") { const v = $("#v"); if (v && !$("#modal")) vPedidos(v); } else contarNuevos();
+      });
+      contarNuevos();
+    },
+    tabs: [
+      { id: "pedidos", ic: "🧾", lbl: "Pedidos", render: vPedidos },
+      { id: "productos", ic: "👗", lbl: "Productos", render: vProductos },
+      { id: "categorias", ic: "🏷️", lbl: "Categorías", render: vCategorias },
+      { id: "ajustes", ic: "⚙️", lbl: "Ajustes", render: vAjustes }
+    ]
+  });
+})();
+</script>
+</body>
+</html>

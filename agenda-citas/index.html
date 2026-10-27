@@ -3,51 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Agenda tu cita · Barbería Los Andes</title>
+<title>Agenda tu cita</title>
 <meta name="description" content="Agenda tu cita en línea: elige servicio, día y hora en segundos.">
 <meta name="theme-color" content="#0b0906">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="../vendedor/icon.png">
+<link rel="icon" href="icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script>
-/* =====================================================================
-   CONFIGURACIÓN DEL NEGOCIO  ·  Edita solo esta sección
-   ---------------------------------------------------------------------
-   - whatsapp: número que recibe las citas (58 + número, sin "+").
-   - services: tus servicios con precio, duración (min) y foto.
-   - schedule: hora de apertura/cierre (formato 24h), cada cuántos
-     minutos hay un turno y qué días cierras (0 = domingo … 6 = sábado).
-   - daysAhead: cuántos días se pueden reservar por adelantado.
-   Las citas se guardan en este teléfono (localStorage) para marcar
-   las horas ocupadas en esta demo.
-   ---------------------------------------------------------------------
-   ¿Quieres que todos tus clientes vean las horas ocupadas en tiempo
-   real? Conecta tu propia base de datos (Supabase, Firebase, Google
-   Sheets…) en las funciones loadBookings() y saveBooking() de abajo.
-   ===================================================================== */
-const CONFIG = {
-  name: "Barbería Los Andes",
-  address: "Av. 4 Bolívar, Mérida",
-  whatsapp: "584140000000",
-  currency: "$",
-  heroImg: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=900&q=70&auto=format&fit=crop",
-  services: [
-    { id: "clasico", name: "Corte clásico",   price: 5, minutes: 30,
-      img: "https://images.unsplash.com/photo-1622296089863-eb7fc530daa8?w=500&q=70&auto=format&fit=crop" },
-    { id: "barba",   name: "Corte + barba",   price: 8, minutes: 45, tag: "Popular",
-      img: "https://images.unsplash.com/photo-1532710093739-9470acff878f?w=500&q=70&auto=format&fit=crop" },
-    { id: "fade",    name: "Degradado (fade)", price: 6, minutes: 40,
-      img: "https://images.unsplash.com/photo-1593702275687-f8b402bf1fb5?w=500&q=70&auto=format&fit=crop" },
-    { id: "afeitado",name: "Afeitado",         price: 4, minutes: 20,
-      img: "https://images.unsplash.com/photo-1517832606299-7ae9b720a186?w=500&q=70&auto=format&fit=crop" }
-  ],
-  schedule: { open: "09:00", close: "17:00", everyMinutes: 45, closedDays: [0] },
-  daysAhead: 7,
-  demoBusySlots: true   // marca algunas horas como ocupadas para que la demo se vea real
-};
-</script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script src="nucleo.js"></script>
 <style>
 :root{--bg:#0b0906;--card:#15110b;--line:rgba(212,175,55,.28);--line2:rgba(212,175,55,.6);--gold:#d4af37;--gold2:#f3d97a;--goldg:linear-gradient(135deg,#f7e48c 0%,#d4af37 48%,#a9851f 100%);--txt:#f5edd9;--mut:#a99d82}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -129,12 +95,18 @@ img{display:block}
 .ticket .r.t span:last-child{font-family:'Playfair Display',serif;font-size:22px;color:var(--gold2);font-weight:700}
 .note{display:flex;gap:8px;align-items:center;justify-content:center;font-size:12.5px;color:var(--gold2);margin-top:14px}
 .foot{text-align:center;color:#6f664f;font-size:11.5px;margin:28px 0 0}
+.hero .lgo{width:46px;height:46px;border-radius:14px;object-fit:cover;border:1.5px solid var(--gold);margin-bottom:6px;background:#1b150c}
+.skel{height:150px;border-radius:18px;background:linear-gradient(90deg,#15110b,#1f180e,#15110b);background-size:200% 100%;animation:sk 1.2s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+.foot a{color:#8d8165}
+.svc .empty{grid-column:1/-1;color:var(--mut);text-align:center;padding:20px;border:1px dashed var(--line);border-radius:16px}
 </style>
 </head>
 <body>
 <header class="hero">
-  <img id="heroImg" alt="Interior de la barbería">
+  <img id="heroImg" alt="">
   <div class="hero-in">
+    <img class="lgo" id="bizLogo" alt="" style="display:none">
     <span class="pill">✂️ Reserva en línea · 24/7</span>
     <h1 class="serif" id="bizName"></h1>
     <p id="bizAddr"></p>
@@ -143,7 +115,7 @@ img{display:block}
 
 <main class="wrap">
   <div class="stepH"><span class="n" id="n1">1</span><h2 class="serif">Elige el servicio</h2></div>
-  <div class="svc" id="svc"></div>
+  <div class="svc" id="svc"><div class="skel"></div><div class="skel"></div></div>
 
   <div class="stepH"><span class="n off" id="n2">2</span><h2 class="serif">Elige el día</h2><small id="monthLbl"></small></div>
   <div class="days" id="days"></div>
@@ -154,7 +126,7 @@ img{display:block}
   <div class="stepH"><span class="n off" id="n4">4</span><h2 class="serif">Tus datos</h2></div>
   <div class="field"><label for="nm">Tu nombre</label><input id="nm" autocomplete="name" placeholder="Ej: Carlos Pérez"></div>
   <div class="field"><label for="tel">Teléfono (WhatsApp)</label><input id="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="Ej: 0414 123 4567"></div>
-  <p class="foot">Agenda demo · Hecha con IA por DUNIGSHOP</p>
+  <p class="foot">Agenda en línea · <a href="panel/">Panel del dueño</a></p>
 </main>
 
 <div class="cta"><div class="sum" id="sum">Elige servicio, día y hora</div><button class="btn" id="confirm" disabled>Confirmar cita</button></div>
@@ -167,87 +139,108 @@ img{display:block}
     <div class="ticket" id="ticket"></div>
     <button class="btn" id="wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.6-.3.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.1 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.6-.1 1.2Z"/></svg>Enviar cita por WhatsApp</button>
     <button class="btn ghost" id="newB">Agendar otra cita</button>
-    <p class="note">🔔 Te enviaremos un recordatorio por WhatsApp</p>
+    <p class="note" id="dNote">🔔 Te confirmaremos por WhatsApp</p>
   </div>
 </section>
 
 <script>
-(function(){
-  const $ = s => document.querySelector(s);
-  const money = n => CONFIG.currency + Number(n).toFixed(2).replace(/\.00$/, "");
+(async function(){
+  const N = Nucleo, $ = N.$, esc = N.esc;
+  N.bannerDemo();
   const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
   const DIAS_L = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
   const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
   const MESES_L = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
-  const KEY = "agenda_bookings";
   const st = { svc: null, day: null, time: null };
+  let db, S = {}, SVC = [], BLOQ = new Set(), OCUP = new Set();
+  const money = n => N.money0(n, S.moneda || "$");
 
-  $("#heroImg").src = CONFIG.heroImg;
-  $("#bizName").textContent = CONFIG.name;
-  $("#bizAddr").textContent = "📍 " + CONFIG.address;
-  $("#dAddr").textContent = CONFIG.address;
-  document.title = "Agenda tu cita · " + CONFIG.name;
-
-  // 👉 Base de datos propia: reemplaza estas dos funciones por llamadas a tu API.
-  function loadBookings(){ try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch(e) { return []; } }
-  function saveBooking(b){ const all = loadBookings(); all.push(b); localStorage.setItem(KEY, JSON.stringify(all)); }
+  try { db = await N.listo(); }
+  catch(e) { if (e.code === "NO_CONFIG") return N.pantallaSinConexion("panel/"); throw e; }
 
   const pad = n => String(n).padStart(2,"0");
   const ymd = d => d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
-  const toMin = t => { const [h,m] = t.split(":").map(Number); return h*60+m; };
+  const toMin = t => { const [h,m] = String(t || "0:0").split(":").map(Number); return h*60+m; };
+  const toHHMM = m => pad(Math.floor(m/60)) + ":" + pad(m%60);
   const fmt12 = min => { let h = Math.floor(min/60), m = min%60; const ap = h >= 12 ? "pm" : "am"; h = h%12 || 12; return h + ":" + pad(m) + " " + ap; };
+  const today = new Date(); today.setHours(0,0,0,0);
+  let days = [];
+
+  async function cargarBase(){
+    const [a, s, b] = await Promise.all([
+      db.select("agc_ajustes", { eq: { id: 1 } }),
+      db.select("agc_servicios", { eq: { activo: true }, order: [["orden"], ["nombre"]] }),
+      db.select("agc_bloqueos", { gte: { fecha: ymd(today) } })
+    ]);
+    S = (a[0] && a[0].datos) || {}; SVC = s.map(x => ({ ...x, precio: Number(x.precio) })); BLOQ = new Set(b.map(x => x.fecha));
+    const n = Math.max(1, Math.min(60, parseInt(S.dias, 10) || 7));
+    days = []; for (let i = 0; i < n; i++) { const d = new Date(today); d.setDate(today.getDate()+i); days.push(d); }
+    if (st.svc) st.svc = SVC.find(x => x.id === st.svc.id) || null;
+  }
+  // Horas ocupadas: vienen de la base de datos para que TODOS los clientes vean lo mismo
+  async function cargarOcupados(){
+    if (!days.length) return;
+    const r = await db.rpc("agc_ocupados", { p_desde: ymd(days[0]), p_hasta: ymd(days[days.length-1]) });
+    OCUP = new Set((r || []).map(x => x.fecha + "|" + String(x.hora).slice(0,5)));
+  }
+  try { await cargarBase(); await cargarOcupados(); }
+  catch(e) { $("#svc").innerHTML = `<p class="empty">${esc(e.message)}</p>`; return; }
+
+  const dia = d => (S.horario || {})[d.getDay()] || { abierto: false };
+  const cerrado = d => !dia(d).abierto || BLOQ.has(ymd(d));
+  function slotsDe(d){
+    const h = dia(d), step = Math.max(5, parseInt(S.intervalo, 10) || 30), out = [];
+    for (let m = toMin(h.desde); m + step <= toMin(h.hasta); m += step) out.push(m);
+    return out;
+  }
+
+  function cabecera(){
+    $("#heroImg").src = N.img(S.portada) || "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+    if (S.logo) { $("#bizLogo").src = N.img(S.logo); $("#bizLogo").style.display = ""; }
+    $("#bizName").textContent = S.nombre || "Agenda tu cita";
+    $("#bizAddr").textContent = S.direccion ? "📍 " + S.direccion : "";
+    $("#dAddr").textContent = S.direccion || S.nombre || "";
+    document.title = "Agenda tu cita · " + (S.nombre || "");
+  }
 
   // Servicios
   const svcBox = $("#svc");
-  CONFIG.services.forEach(s => {
-    const b = document.createElement("button"); b.className = "sv"; b.dataset.id = s.id;
-    b.innerHTML = `<img src="${s.img}" alt="${s.name}" loading="lazy">${s.tag ? `<span class="tag">${s.tag}</span>` : ""}
-      <span class="ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1b1305" stroke-width="3.5"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
-      <div class="b"><h3>${s.name}</h3><div class="m"><span>⏱ ${s.minutes} min</span><b>${money(s.price)}</b></div></div>`;
-    b.onclick = () => { st.svc = s; render(); };
-    svcBox.appendChild(b);
-  });
+  function renderSvcs(){
+    svcBox.innerHTML = SVC.length ? "" : `<p class="empty">Pronto publicaremos nuestros servicios.</p>`;
+    SVC.forEach(s => {
+      const b = document.createElement("button"); b.className = "sv"; b.dataset.id = s.id;
+      b.innerHTML = `${s.foto ? `<img src="${esc(N.img(s.foto))}" alt="${esc(s.nombre)}" loading="lazy">` : `<div style="height:104px;background:#221a10"></div>`}${s.etiqueta ? `<span class="tag">${esc(s.etiqueta)}</span>` : ""}
+        <span class="ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1b1305" stroke-width="3.5"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+        <div class="b"><h3>${esc(s.nombre)}</h3><div class="m"><span>⏱ ${s.duracion} min</span><b>${money(s.precio)}</b></div></div>`;
+      b.onclick = () => { st.svc = s; render(); };
+      svcBox.appendChild(b);
+    });
+  }
 
   // Días
-  const today = new Date(); today.setHours(0,0,0,0);
-  const days = [];
-  for (let i = 0; i < CONFIG.daysAhead; i++) { const d = new Date(today); d.setDate(today.getDate()+i); days.push(d); }
   const daysBox = $("#days");
-  days.forEach((d, i) => {
-    const closed = CONFIG.schedule.closedDays.includes(d.getDay());
-    const b = document.createElement("button"); b.className = "day"; b.dataset.k = ymd(d); b.disabled = closed;
-    b.innerHTML = `<div class="w">${i === 0 ? "Hoy" : DIAS[d.getDay()]}</div><div class="d">${d.getDate()}</div><div class="mo">${closed ? "Cerrado" : MESES[d.getMonth()]}</div>`;
-    b.onclick = () => { st.day = d; st.time = null; render(); };
-    daysBox.appendChild(b);
-  });
-  $("#monthLbl").textContent = MESES_L[today.getMonth()] + " " + today.getFullYear();
-  // Preselecciona el primer día abierto
-  st.day = days.find(d => !CONFIG.schedule.closedDays.includes(d.getDay())) || null;
-
-  // Horas
-  const slots = [];
-  for (let m = toMin(CONFIG.schedule.open); m + 30 <= toMin(CONFIG.schedule.close); m += CONFIG.schedule.everyMinutes) slots.push(m);
-
-  function busy(dayKey){
-    const set = new Set(loadBookings().filter(b => b.day === dayKey).map(b => b.time));
-    if (CONFIG.demoBusySlots) { // ocupadas "de ejemplo", siempre las mismas para cada fecha
-      let seed = dayKey.split("-").join("") % 9973;
-      slots.forEach(s => { seed = (seed * 9301 + 49297) % 233280; if (seed / 233280 < 0.25) set.add(s); });
-    }
-    return set;
+  function renderDays(){
+    daysBox.innerHTML = "";
+    days.forEach((d, i) => {
+      const off = cerrado(d);
+      const b = document.createElement("button"); b.className = "day"; b.dataset.k = ymd(d); b.disabled = off;
+      b.innerHTML = `<div class="w">${i === 0 ? "Hoy" : DIAS[d.getDay()]}</div><div class="d">${d.getDate()}</div><div class="mo">${off ? "Cerrado" : MESES[d.getMonth()]}</div>`;
+      b.onclick = () => { st.day = d; st.time = null; render(); };
+      daysBox.appendChild(b);
+    });
+    $("#monthLbl").textContent = MESES_L[today.getMonth()] + " " + today.getFullYear();
+    if (!st.day || cerrado(st.day) || !days.some(d => ymd(d) === ymd(st.day))) st.day = days.find(d => !cerrado(d)) || null;
   }
 
   function renderHours(){
     const box = $("#hoursBox");
-    if (!st.day) { box.innerHTML = `<p class="hint">Primero elige un día</p>`; return; }
-    const k = ymd(st.day), taken = busy(k);
+    if (!st.day) { box.innerHTML = `<p class="hint">No hay días disponibles por ahora.</p>`; return; }
+    const k = ymd(st.day), slots = slotsDe(st.day);
     const now = new Date(), isToday = k === ymd(now), nowMin = now.getHours()*60 + now.getMinutes();
-    const free = slots.filter(s => !taken.has(s) && !(isToday && s <= nowMin + 15));
-    if (!free.length) { box.innerHTML = `<p class="hint">No quedan horas libres este día. Prueba con otro día 👆</p>`; return; }
-    box.innerHTML = `<div class="hours">${slots.map(s => {
-      const off = taken.has(s) || (isToday && s <= nowMin + 15);
-      return `<button class="h ${st.time === s ? "on" : ""}" data-t="${s}" ${off ? "disabled" : ""}>${fmt12(s)}</button>`;
-    }).join("")}</div>
+    const off = s => OCUP.has(k + "|" + toHHMM(s)) || (isToday && s <= nowMin + 15);
+    if (st.time != null && off(st.time)) st.time = null;
+    if (!slots.filter(s => !off(s)).length) { box.innerHTML = `<p class="hint">No quedan horas libres este día. Prueba con otro día 👆</p>`; return; }
+    box.innerHTML = `<div class="hours">${slots.map(s => `<button class="h ${st.time === s ? "on" : ""}" data-t="${s}" ${off(s) ? "disabled" : ""}>${fmt12(s)}</button>`).join("")}</div>
     <div class="legend"><span><i style="background:var(--goldg)"></i>Seleccionada</span><span><i style="border:1px solid var(--line);background:#15110b"></i>Libre</span><span><i style="border:1px dashed var(--line);background:#0f0c08"></i>Ocupada</span></div>`;
     box.querySelectorAll(".h:not([disabled])").forEach(b => b.onclick = () => { st.time = Number(b.dataset.t); render(); });
   }
@@ -256,13 +249,13 @@ img{display:block}
   const valid = () => st.svc && st.day && st.time != null && $("#nm").value.trim().length >= 2 && $("#tel").value.replace(/\D/g,"").length >= 7;
 
   function render(){
-    svcBox.querySelectorAll(".sv").forEach(b => b.classList.toggle("on", st.svc && b.dataset.id === st.svc.id));
-    daysBox.querySelectorAll(".day").forEach(b => b.classList.toggle("on", st.day && b.dataset.k === ymd(st.day)));
+    svcBox.querySelectorAll(".sv").forEach(b => b.classList.toggle("on", !!st.svc && b.dataset.id === st.svc.id));
+    daysBox.querySelectorAll(".day").forEach(b => b.classList.toggle("on", !!st.day && b.dataset.k === ymd(st.day)));
     renderHours();
     $("#n2").classList.toggle("off", !st.svc); $("#n3").classList.toggle("off", !(st.svc && st.day));
     $("#n4").classList.toggle("off", st.time == null);
     const parts = [];
-    if (st.svc) parts.push(st.svc.name + " · " + money(st.svc.price));
+    if (st.svc) parts.push(st.svc.nombre + " · " + money(st.svc.precio));
     if (st.day) parts.push(DIAS[st.day.getDay()] + " " + st.day.getDate() + " " + MESES[st.day.getMonth()]);
     if (st.time != null) parts.push(fmt12(st.time));
     $("#sum").textContent = parts.length ? parts.join("  •  ") : "Elige servicio, día y hora";
@@ -272,33 +265,48 @@ img{display:block}
   $("#nm").addEventListener("input", render); $("#tel").addEventListener("input", render);
 
   let last = null;
-  $("#confirm").onclick = () => {
+  $("#confirm").onclick = async () => {
     if (!valid()) return;
-    const k = ymd(st.day);
-    if (busy(k).has(st.time)) { alert("Esa hora acaba de ocuparse, elige otra."); st.time = null; render(); return; }
+    const k = ymd(st.day), hh = toHHMM(st.time), btn = $("#confirm");
+    btn.disabled = true; btn.textContent = "Reservando…";
+    try {
+      await db.insert("agc_citas", { id: N.uid(), servicio_id: st.svc.id, servicio: st.svc.nombre, precio: st.svc.precio, duracion: st.svc.duracion, fecha: k, hora: hh, cliente: $("#nm").value.trim().slice(0,80), telefono: $("#tel").value.trim().slice(0,30), estado: "pendiente" });
+    } catch(e) {
+      if (e.code === "23505") { alert("Esa hora acaba de ser reservada por otra persona. Elige otra, por favor."); }
+      else alert(e.message.replace(/^.*?:\s*/, "") || "No se pudo reservar. Intenta de nuevo.");
+      try { await cargarOcupados(); } catch(x) {}
+      st.time = null; render(); return;
+    }
+    OCUP.add(k + "|" + hh);
     last = { svc: st.svc, day: new Date(st.day), time: st.time, name: $("#nm").value.trim(), tel: $("#tel").value.trim() };
-    saveBooking({ day: k, time: st.time, svc: st.svc.id, name: last.name, tel: last.tel, at: Date.now() });
-    const end = st.time + st.svc.minutes;
-    $("#ticket").innerHTML = `<div class="top"><img src="${st.svc.img}" alt=""><div><b>${st.svc.name}</b><small>${st.svc.minutes} min · ${CONFIG.name}</small></div></div>
-      <div class="r"><span>Servicio</span><span>${st.svc.name}</span></div>
+    const end = st.time + st.svc.duracion;
+    $("#ticket").innerHTML = `<div class="top">${st.svc.foto ? `<img src="${esc(N.img(st.svc.foto))}" alt="">` : ""}<div><b>${esc(st.svc.nombre)}</b><small>${st.svc.duracion} min · ${esc(S.nombre || "")}</small></div></div>
+      <div class="r"><span>Servicio</span><span>${esc(st.svc.nombre)}</span></div>
       <div class="r"><span>Día</span><span>${dayLabel(st.day)}</span></div>
       <div class="r"><span>Hora</span><span>${fmt12(st.time)} – ${fmt12(end)}</span></div>
-      <div class="r"><span>Cliente</span><span>${last.name.replace(/</g,"&lt;")}</span></div>
-      <div class="r t"><span>Total</span><span>${money(st.svc.price)}</span></div>`;
+      <div class="r"><span>Cliente</span><span>${esc(last.name)}</span></div>
+      <div class="r t"><span>Total</span><span>${money(st.svc.precio)}</span></div>`;
+    $("#wa").style.display = N.waNum(S.whatsapp) ? "" : "none";
     $("#done").classList.add("show"); $("#done").scrollTop = 0;
   };
   $("#wa").onclick = () => {
     if (!last) return;
-    let msg = `💈 *Nueva cita · ${CONFIG.name}*\n\n`;
-    msg += `✂️ Servicio: *${last.svc.name}* (${last.svc.minutes} min)\n`;
+    let msg = `💈 *Nueva cita · ${S.nombre || ""}*\n\n`;
+    msg += `✂️ Servicio: *${last.svc.nombre}* (${last.svc.duracion} min)\n`;
     msg += `📅 Día: *${dayLabel(last.day)}*\n🕒 Hora: *${fmt12(last.time)}*\n`;
-    msg += `👤 Cliente: ${last.name}\n📱 Teléfono: ${last.tel}\n\n💰 Total: *${money(last.svc.price)}*\n📍 ${CONFIG.address}\n\n_Reservado desde la agenda en línea_`;
-    window.open(`https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`, "_blank");
+    msg += `👤 Cliente: ${last.name}\n📱 Teléfono: ${last.tel}\n\n💰 Total: *${money(last.svc.precio)}*` + (S.direccion ? `\n📍 ${S.direccion}` : "") + `\n\n_Reservado desde la agenda en línea_`;
+    window.open(`https://wa.me/${N.waNum(S.whatsapp)}?text=${encodeURIComponent(msg)}`, "_blank");
   };
   $("#newB").onclick = () => { $("#done").classList.remove("show"); st.time = null; render(); window.scrollTo({top:0}); };
 
-  render();
+  cabecera(); renderSvcs(); renderDays(); render();
+  // Mantén la disponibilidad al día (otra persona pudo reservar)
+  const refrescar = async () => { try { await cargarOcupados(); render(); } catch(e) {} };
+  setInterval(() => { if (!document.hidden) refrescar(); }, 30000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refrescar(); });
+  if (db.modo === "demo") db.subscribe("agc_citas", refrescar);
 })();
 </script>
+
 </body>
 </html>

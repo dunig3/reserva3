@@ -16,15 +16,15 @@
    ===================================================================== */
 const APPS = [
   { title: "Tienda con carrito", desc: "Catálogo con carrito y pedido por WhatsApp para tu emprendimiento de dulces o belleza.",
-    tag: "Ventas", url: "../vendedor/tienda/?n=dulces", img: "../vendedor/img/hero-dulces.jpg" },
-  { title: "Menú con código QR", desc: "Tus clientes escanean, piden desde la mesa y el pedido llega a tu WhatsApp.",
-    tag: "Restaurantes", url: "../menu-qr/?mesa=4", img: "https://images.pexels.com/photos/29496092/pexels-photo-29496092.jpeg?auto=compress&cs=tinysrgb&w=700" },
+    tag: "Ventas", url: "../vendedor/tienda/?n=dulces", panel: "../vendedor/panel/?n=dulces", img: "../vendedor/img/hero-dulces.jpg" },
+  { title: "Menú con código QR", desc: "Tus clientes escanean, piden desde la mesa y el pedido llega a tu panel y a tu WhatsApp.",
+    tag: "Restaurantes", url: "../menu-qr/?mesa=4", panel: "../menu-qr/panel/", img: "../menu-qr/img/29496092.webp" },
   { title: "Agenda de citas", desc: "Reservas 24/7 con servicios, días y horas disponibles. Ideal para barberías y salones.",
-    tag: "Servicios", url: "../agenda-citas/", img: "https://images.unsplash.com/photo-1593702275687-f8b402bf1fb5?w=700&q=70&auto=format&fit=crop" },
-  { title: "Catálogo por talla", desc: "Ropa y calzado con filtros por categoría y talla, búsqueda y pedido directo.",
-    tag: "Moda", url: "../catalogo-tallas/", img: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=700&q=70&auto=format&fit=crop" },
-  { title: "Calculadora para reposteras", desc: "¿A cuánto vendo mi torta? Costos, ganancia y precio por porción en segundos.",
-    tag: "Repostería", url: "../calculadora-reposteria/", img: "../vendedor/img/cupcakes.jpg" }
+    tag: "Servicios", url: "../agenda-citas/", panel: "../agenda-citas/panel/", img: "../agenda-citas/img/1593702275687.webp" },
+  { title: "Catálogo por talla", desc: "Ropa y calzado con filtros por categoría y talla, stock por talla y pedido directo.",
+    tag: "Moda", url: "../catalogo-tallas/", panel: "../catalogo-tallas/panel/", img: "../catalogo-tallas/img/1490481651871.webp" },
+  { title: "Calculadora para reposteras", desc: "¿A cuánto vendo mi torta? Tu lista de ingredientes con precios y tus recetas siempre al día.",
+    tag: "Repostería", url: "../calculadora-reposteria/", panel: "../calculadora-reposteria/panel/", img: "../vendedor/img/cupcakes.jpg" }
 ];
 </script>
 <style>
@@ -45,7 +45,7 @@ header p{color:var(--mut);font-size:14px;margin:10px auto 0;max-width:340px}
 .chips{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:16px}
 .chips span{font-size:11.5px;padding:5px 11px;border-radius:999px;border:1px solid var(--line);color:#d9cfb6}
 main{padding:18px 16px 10px;display:grid;gap:14px}
-.app{display:block;text-decoration:none;color:inherit;border:1px solid var(--line);border-radius:22px;overflow:hidden;background:var(--card);transition:transform .15s,border-color .2s}
+.app{display:block;color:inherit;border:1px solid var(--line);border-radius:22px;overflow:hidden;background:var(--card);transition:transform .15s,border-color .2s}
 .app:active{transform:scale(.985)}
 .app:hover{border-color:var(--line2)}
 .ph{position:relative;height:150px}
@@ -56,7 +56,10 @@ main{padding:18px 16px 10px;display:grid;gap:14px}
 .b{padding:2px 16px 16px;margin-top:-18px;position:relative;z-index:2}
 .b h2{font-size:22px;line-height:1.15}
 .b p{font-size:13px;color:var(--mut);margin-top:5px}
-.go{display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:13.5px;font-weight:700;color:#1b1305;background:var(--goldg);padding:9px 16px;border-radius:999px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.app a{text-decoration:none;color:inherit}
+.go.pn{background:transparent;color:var(--gold2);border:1px solid var(--line2)}
+.go{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:700;color:#1b1305;background:var(--goldg);padding:9px 16px;border-radius:999px}
 .cta{margin:10px 16px 0;border:1px solid var(--line2);border-radius:22px;padding:20px;text-align:center;background:linear-gradient(160deg,#1c150b,#0f0b06)}
 .cta h3{font-size:22px}
 .cta p{font-size:13px;color:var(--mut);margin-top:6px}
@@ -70,20 +73,21 @@ footer em{display:block;margin-top:6px;font-family:'Playfair Display',serif;font
   <span class="logo"><i></i>DUNIGSHOP<i></i></span>
   <h1 class="serif">Apps hechas <em class="gold">con IA</em></h1>
   <p>Demos listas para tu negocio. Tócalas, pruébalas y pide la tuya personalizada con tu nombre, productos y WhatsApp.</p>
-  <div class="chips"><span>📱 Funcionan en el teléfono</span><span>💬 Pedidos a WhatsApp</span><span>⚡ Sin mensualidad</span></div>
+  <div class="chips"><span>📱 Funcionan en el teléfono</span><span>💬 Pedidos a WhatsApp</span><span>⚙️ Panel para el dueño</span><span>⚡ Sin mensualidad</span></div>
 </header>
 <main id="list"></main>
 <section class="cta">
   <h3 class="serif">¿Quieres una <span class="gold">para tu negocio?</span></h3>
-  <p>Cambiamos el nombre, los colores, los productos y el número de WhatsApp. Lista para compartir el mismo día.</p>
+  <p>Cada app trae su panel: tú cambias productos, precios, fotos y horarios desde el teléfono. Tus datos quedan en tu propia base de datos gratis.</p>
 </section>
 <footer><b>DUNIGSHOP</b> · Mérida, Venezuela<em class="gold">El momento es hoy</em></footer>
 <script>
 document.getElementById("list").innerHTML = APPS.map((a, i) => `
-  <a class="app" href="${a.url}">
-    <div class="ph"><img src="${a.img}" alt="${a.title}" loading="${i < 2 ? "eager" : "lazy"}"><span class="num">${String(i+1).padStart(2,"0")}</span><span class="tag">${a.tag}</span></div>
-    <div class="b"><h2 class="serif">${a.title}</h2><p>${a.desc}</p><span class="go">Ver demo →</span></div>
-  </a>`).join("");
+  <article class="app">
+    <a href="${a.url}"><div class="ph"><img src="${a.img}" alt="${a.title}" loading="${i < 2 ? "eager" : "lazy"}"><span class="num">${String(i+1).padStart(2,"0")}</span><span class="tag">${a.tag}</span></div></a>
+    <div class="b"><a href="${a.url}"><h2 class="serif">${a.title}</h2><p>${a.desc}</p></a>
+      <div class="btns"><a class="go" href="${a.url}">Ver demo →</a>${a.panel ? `<a class="go pn" href="${a.panel}">⚙️ Panel</a>` : ""}</div></div>
+  </article>`).join("");
 </script>
 </body>
 </html>
