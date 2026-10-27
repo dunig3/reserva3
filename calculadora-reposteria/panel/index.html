@@ -96,10 +96,10 @@
     const S = P.ajustes;
     v.innerHTML = `<h2 class="t">Mis <span class="gold">ajustes</span></h2><div class="box">
       ${P.campo("aN", "Nombre de mi negocio", S.negocio, 'maxlength="60"')}
-      <div class="row"><div>${P.campo("aM", "Moneda", S.moneda || "$", 'maxlength="5"')}</div><div><label for="aR">Redondear porción a</label><select id="aR">${[0.01, 0.05, 0.1, 0.25, 0.5, 1].map(x => `<option value="${x}" ${+S.redondeo === x ? "selected" : ""}>${x}</option>`).join("")}</select></div></div>
+      <div class="row"><div>${P.campo("aM", "Símbolo de moneda (ej. $ o Bs.)", S.moneda || "$", 'maxlength="5"')}</div><div><label for="aR">Redondear porción a</label><select id="aR">${[0.01, 0.05, 0.1, 0.25, 0.5, 1].map(x => `<option value="${x}" ${+S.redondeo === x ? "selected" : ""}>${x}</option>`).join("")}</select></div></div>
       <div class="row"><div>${P.campo("aG", "Margen por defecto (%)", S.margen, 'type="number" min="0" max="1000" inputmode="numeric"')}</div><div>${P.campo("aP", "Porciones por defecto", S.porciones, 'type="number" min="1" max="500" inputmode="numeric"')}</div></div>
       ${P.campo("aW", "WhatsApp para compartir (opcional)", S.whatsapp, 'inputmode="tel" placeholder="584141234567"')}
-      <button class="btn full" id="aS">Guardar ajustes</button></div>`;
+      <button class="btn full fijo" id="aS">Guardar ajustes</button></div>`;
     $("#aS").onclick = e => P.ocupado(e.currentTarget, async () => {
       await guardarAj({ negocio: P.v("aN"), moneda: P.v("aM") || "$", redondeo: parseFloat(P.v("aR")) || 0.05, margen: Math.max(0, Math.min(1000, P.num("aG"))), porciones: Math.max(1, Math.min(500, Math.round(P.num("aP")) || 12)), whatsapp: N.waNum(P.v("aW")) });
       N.toast("✓ Ajustes guardados"); P.refrescarTop(); vAjustes(v);

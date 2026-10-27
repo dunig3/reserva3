@@ -187,10 +187,10 @@
         ${P.campo("aC", "Ciudad o dirección", S.ciudad, 'maxlength="80"')}
         ${P.campo("aH", "Horario", S.horario, 'maxlength="80" placeholder="Lun a Dom · 7:00 am – 10:00 pm"')}
         ${P.campo("aW", "WhatsApp que recibe los pedidos", S.whatsapp, 'inputmode="tel" placeholder="584141234567 (58 + número, sin +)"')}
-        <div class="row"><div>${P.campo("aM", "Moneda", S.moneda || "$", 'maxlength="5"')}</div><div>${P.campo("aP", "Prefijo de pedido", S.prefijo || "P", 'maxlength="4"')}</div></div>
+        <div class="row"><div>${P.campo("aM", "Símbolo de moneda (ej. $ o Bs.)", S.moneda || "$", 'maxlength="5"')}</div><div>${P.campo("aP", "Prefijo de pedido", S.prefijo || "P", 'maxlength="4"')}</div></div>
         ${P.foto("aLg", "Logo (cuadrado)", S.logo, true)}
         ${P.foto("aPt", "Foto de portada", S.portada)}
-        <button class="btn full" id="aG">Guardar ajustes</button>
+        <button class="btn full fijo" id="aG">Guardar ajustes</button>
       </div>`;
     $("#aA").onchange = async e => { try { await P.guardarAjustes({ abierto: e.target.checked }); N.toast(e.target.checked ? "✓ Abierto: recibiendo pedidos" : "🔒 Cerrado: el menú no acepta pedidos"); } catch(x) { N.toast("⚠️ " + x.message); } };
     $("#aG").onclick = e => P.ocupado(e.currentTarget, async () => {

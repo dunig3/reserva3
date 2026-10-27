@@ -206,10 +206,10 @@
       ${P.campo("aI", "Insignia del banner", S.insignia, 'maxlength="24" placeholder="Temporada 2026"')}
       ${P.campo("aW", "WhatsApp que recibe los pedidos", S.whatsapp, 'inputmode="tel" placeholder="584141234567 (58 + número, sin +)"')}
       ${P.campo("aE", "Texto de envíos y pagos", S.envios, 'maxlength="120" placeholder="🚚 Envíos a toda Venezuela · Pago móvil, Zelle o efectivo"')}
-      ${P.campo("aM", "Moneda", S.moneda || "$", 'maxlength="5"')}
+      ${P.campo("aM", "Símbolo de moneda (ej. $ o Bs.)", S.moneda || "$", 'maxlength="5"')}
       ${P.foto("aLg", "Logo (cuadrado)", S.logo, true)}
       ${P.foto("aB", "Banner", S.banner)}
-      <button class="btn full" id="aG">Guardar ajustes</button></div>`;
+      <button class="btn full fijo" id="aG">Guardar ajustes</button></div>`;
     $("#aG").onclick = e => P.ocupado(e.currentTarget, async () => {
       const w = N.waNum(P.v("aW")); if (w && w.length < 10) return N.toast("Revisa el WhatsApp: 58 + número (ej: 584141234567)");
       const logo = await P.leerFoto("aLg"), banner = await P.leerFoto("aB");

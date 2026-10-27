@@ -95,3 +95,5 @@ hr.d{border:0;border-top:1px dashed rgba(212,175,55,.22);margin:14px 0}
 .flt{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}.flt::-webkit-scrollbar{display:none}
 .flt .chip{flex:0 0 auto}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn.fijo{position:sticky;bottom:calc(74px + env(safe-area-inset-bottom));z-index:30;box-shadow:0 8px 28px rgba(0,0,0,.65);margin-top:14px}
+input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus,textarea:-webkit-autofill,select:-webkit-autofill{-webkit-box-shadow:0 0 0 1000px #15110b inset!important;box-shadow:0 0 0 1000px #15110b inset!important;-webkit-text-fill-color:#f3ead6!important;caret-color:#f3ead6;transition:background-color 9999s}
