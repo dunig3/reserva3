@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07070a">
+<title>Vendedor Automático · Tu negocio vende mientras tú atiendes</title>
+<meta name="description" content="Tienda en línea, pedidos, chat con tus clientes, cobros y equipo de vendedores en una sola app.">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"><link rel="manifest" href="manifest.json">
+<style>
+.mock{position:relative;height:440px;margin-top:40px}
+@media(min-width:900px){.hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}.mock{margin:0}}
+.phone{position:absolute;width:210px;height:420px;border-radius:34px;background:#0c0c11;border:2px solid rgba(255,210,63,.55);box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 60px rgba(255,190,0,.25);overflow:hidden;padding:12px}
+.phone.a{left:50%;margin-left:-190px;animation:fl1 6s ease-in-out infinite}.phone.b{left:50%;margin-left:-20px;top:20px;animation:fl1 6s ease-in-out -3s infinite}
+@keyframes fl1{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-16px) rotate(1deg)}}
+.phone .scr{border-radius:24px;height:100%;overflow:hidden;background:var(--bg2);display:flex;flex-direction:column}
+.phone .hd{height:120px;background-size:cover;background-position:center;position:relative}.phone .hd::after{content:'';position:absolute;inset:0;background:linear-gradient(transparent,var(--bg2))}
+.phone .g{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px}.phone .g img{border-radius:10px;aspect-ratio:1;object-fit:cover}
+.phone .bb{margin:6px 8px;padding:8px 10px;border-radius:12px;font-size:11px}.bb.l{background:#23232c;align-self:flex-start;max-width:80%}.bb.r{background:var(--gold);color:#1a1200;align-self:flex-end;max-width:80%}
+.phone .bb{opacity:0;animation:msg 8s infinite}.bb:nth-child(2){animation-delay:1s}.bb:nth-child(3){animation-delay:2.2s}.bb:nth-child(4){animation-delay:3.4s}.bb:nth-child(5){animation-delay:4.6s}
+@keyframes msg{0%{opacity:0;transform:translateY(8px)}8%,85%{opacity:1;transform:none}100%{opacity:0}}
+.notif{position:absolute;right:0;top:-10px;background:var(--gold);color:#1a1200;border-radius:16px;padding:10px 14px;font-size:13px;font-weight:700;box-shadow:0 10px 30px rgba(255,190,0,.45);animation:nt 5s ease-in-out infinite;z-index:3}
+@keyframes nt{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-10px) scale(1.04)}}
+.demo-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.dc{border-radius:var(--r);overflow:hidden;background:var(--card);border:1px solid var(--line);transition:.3s}
+.dc:hover{transform:translateY(-6px);border-color:var(--g3)}.dc .im{height:150px;background-size:cover;background-position:center;animation:kb 14s ease-in-out infinite alternate}
+.dc .bd{padding:18px}.dc h3{margin-bottom:6px}.dc p{color:var(--mut);font-size:14px;margin-bottom:14px}
+.cta{text-align:center;border-radius:28px;padding:50px 24px;background:radial-gradient(circle at 50% 0,rgba(255,200,0,.25),transparent 60%),var(--card);border:1px solid rgba(255,210,63,.35)}
+@media(max-width:420px){.mock{transform:scale(.85);transform-origin:top center}}
+.note{max-width:720px;margin:24px auto 0;color:var(--mut);font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+<nav class="top" id="nav"><div class="wrap"><a class="brand" href="#"><i>⚡</i><span>Vendedor <span class="gtxt">Automático</span></span></a><span class="sp"></span><a class="btn sm" href="#demo">Ver demo</a></div></nav>
+
+<header class="hero">
+  <div class="bg" style="background-image:url(img/hero-belleza.jpg);opacity:.35"></div><div class="shade"></div><canvas id="sparks"></canvas>
+  <div class="wrap in">
+    <div>
+      <span class="kicker"><b></b> Para emprendedores y negocios locales</span>
+      <h1>Tu negocio <span class="gtxt">vende</span> mientras tú atiendes</h1>
+      <p class="lead">Tienda en línea, pedidos, chat con tus clientes, cobros y equipo de vendedores con comisiones. Todo en una sola app, desde tu teléfono.</p>
+      <div class="ctas"><a class="btn" href="#demo">🚀 Probar la demo</a><a class="btn ghost" href="#como">¿Cómo funciona?</a></div>
+      <div class="trust"><div><b>24/7</b>tienda abierta</div><div><b>🔔</b>aviso al instante</div><div><b>0</b>programación</div></div>
+    </div>
+    <div class="mock">
+      <div class="notif">🧾 Nuevo pedido · $22.00</div>
+      <div class="phone a"><div class="scr"><div class="hd" style="background-image:url(img/hero-dulces.jpg)"></div><div class="g"><img src="img/torta.jpg"><img src="img/cupcakes.jpg"><img src="img/quesillo.jpg"><img src="img/galletas.jpg"></div></div></div>
+      <div class="phone b"><div class="scr" style="padding-top:20px"><div class="bb l">Hola, ¿tienen torta para hoy? 🎂</div><div class="bb r">¡Sí! Te la llevamos a las 4 pm</div><div class="bb l">Perfecto, ya hice el pedido</div><div class="bb r">Recibido #1001 ✅</div><div class="bb r">Pedido en camino 🚚</div></div></div>
+    </div>
+  </div>
+</header>
+
+<div class="marquee"><div class="tr"><img src="img/torta.jpg"><img src="img/labial.jpg"><img src="img/quesillo.jpg"><img src="img/perfume.jpg"><img src="img/galletas.jpg"><img src="img/crema.jpg"><img src="img/cupcakes.jpg"><img src="img/esmaltes.jpg"><img src="img/torta.jpg"><img src="img/labial.jpg"><img src="img/quesillo.jpg"><img src="img/perfume.jpg"><img src="img/galletas.jpg"><img src="img/crema.jpg"><img src="img/cupcakes.jpg"><img src="img/esmaltes.jpg"></div></div>
+
+<section id="como"><div class="wrap">
+  <div class="sh reveal"><h2>Todo lo que tu negocio <span class="gtxt">necesita</span></h2><p>Menos mensajes perdidos, más pedidos cerrados.</p></div>
+  <div class="feats">
+    <div class="ft reveal"><span class="ic">🛍️</span><h3>Tienda propia</h3><p>Tu catálogo con fotos, precios y carrito, en un enlace para compartir.</p></div>
+    <div class="ft reveal"><span class="ic">🧾</span><h3>Pedidos ordenados</h3><p>Cada pedido llega con datos, dirección y forma de pago. Lo confirmas con un toque.</p></div>
+    <div class="ft reveal"><span class="ic">💬</span><h3>Chat interno con sonido</h3><p>Conversa con tus clientes dentro de la app, sin depender de WhatsApp.</p></div>
+    <div class="ft reveal"><span class="ic">💳</span><h3>Cobros a tu manera</h3><p>Pago móvil, efectivo, Zelle o lo que uses. Tú decides.</p></div>
+    <div class="ft reveal"><span class="ic">🤝</span><h3>Equipo de vendedores</h3><p>Cada vendedor con su enlace, comisión automática, metas y ranking.</p></div>
+    <div class="ft reveal"><span class="ic">📊</span><h3>Panel del dueño</h3><p>Ventas del día, pedidos pendientes y mensajes en un solo lugar, separado de tu tienda.</p></div>
+  </div>
+</div></section>
+
+<section id="demo" style="background:var(--bg2)"><div class="wrap">
+  <div class="sh reveal"><h2>Pruébalo <span class="gtxt">ahora</span></h2><p>Abre la tienda en un teléfono y el panel en otro: verás llegar pedidos y mensajes con sonido.</p></div>
+  <div class="demo-cards">
+    <a class="dc reveal" href="tienda/?n=dulces"><div class="im" style="background-image:url(img/hero-dulces.jpg)"></div><div class="bd"><h3>🛍️ Tienda del cliente</h3><p>Lo que ven tus clientes: catálogo, carrito, pedido y chat.</p><span class="btn sm">Abrir tienda</span></div></a>
+    <a class="dc reveal" href="panel/?n=dulces"><div class="im" style="background-image:url(img/hero-belleza.jpg)"></div><div class="bd"><h3>📊 Panel del negocio</h3><p>Solo para el dueño. PIN de demo: 0000.</p><span class="btn sm">Abrir panel</span></div></a>
+    <a class="dc reveal" href="promotor/?n=dulces"><div class="im" style="background-image:url(img/cupcakes.jpg)"></div><div class="bd"><h3>🤝 App del vendedor</h3><p>Enlace, comisiones y ranking. Demo: ANA01 / 1234.</p><span class="btn sm">Abrir app</span></div></a>
+  </div>
+  <p class="note">Conectado a la nube: tienda, panel y vendedores se sincronizan en tiempo real entre teléfonos. Datos de demostración compartidos.</p>
+</div></section>
+
+<section><div class="wrap"><div class="cta reveal"><h2 style="font-size:clamp(26px,6vw,40px);font-weight:800">El momento es <span class="gtxt">hoy</span></h2>
+<p class="mut" style="margin:10px 0 22px">Lleva tu negocio al siguiente nivel con tu propia tienda y tu equipo de ventas.</p><a class="btn" href="tienda/?n=dulces">Ver la tienda de ejemplo</a></div></div></section>
+
+<footer>Vendedor Automático · DUNIGSHOP</footer>
+<script>
+(function(){const c=document.getElementById('sparks'),x=c.getContext('2d');let W,H,P=[];function rs(){W=c.width=c.offsetWidth*devicePixelRatio;H=c.height=c.offsetHeight*devicePixelRatio}rs();addEventListener('resize',rs);
+ for(let i=0;i<80;i++)P.push({x:Math.random(),y:Math.random(),r:Math.random()*2+.6,s:Math.random()*.0015+.0005,a:Math.random()*6});
+ (function f(){x.clearRect(0,0,W,H);P.forEach(p=>{p.y-=p.s;p.a+=.03;if(p.y<0){p.y=1;p.x=Math.random()}const al=.4+.6*Math.abs(Math.sin(p.a)),R=p.r*6*devicePixelRatio;
+  const g=x.createRadialGradient(p.x*W,p.y*H,0,p.x*W,p.y*H,R);g.addColorStop(0,`rgba(255,225,120,${al})`);g.addColorStop(1,'rgba(255,180,0,0)');x.fillStyle=g;x.beginPath();x.arc(p.x*W,p.y*H,R,0,7);x.fill()});requestAnimationFrame(f)})()})();
+addEventListener('scroll',()=>document.getElementById('nav').classList.toggle('solid',scrollY>40));
+const io=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('on')),{threshold:.12});document.querySelectorAll('.reveal').forEach(e=>io.observe(e));
+</script>
+</body></html>

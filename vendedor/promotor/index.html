@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07070a"><meta name="robots" content="noindex">
+<title>App del vendedor</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+<style>body{background:radial-gradient(circle at 20% -10%,rgba(255,190,0,.2),transparent 45%),var(--bg)}
+.c{max-width:520px;margin:0 auto;padding:30px 20px 60px}.box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:14px}
+.kp{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}.k{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;text-align:center}
+.k b{display:block;font-size:22px;font-weight:800}.k span{font-size:11px;color:var(--mut)}
+.rw{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.meta{height:12px;background:#22222b;border-radius:8px;overflow:hidden;margin:10px 0 4px}.qty{display:inline-flex;align-items:center;background:#1e1e26;border-radius:999px;padding:3px}.qty button{width:30px;height:30px;border-radius:50%;border:0;background:var(--gold);color:#1a1200;font-weight:800}
+.meta div{height:100%;background:var(--gold);border-radius:8px;transition:1s}</style>
+</head>
+<body><div class="c" id="root"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+<script src="../core.js"></script>
+<script>
+/* App del promotor — en línea. Código + PIN se verifican en el servidor y devuelven un token de 12 h. */
+let VT=JSON.parse(sessionStorage.getItem('va_vtok_'+BIZ)||'null'),ses=VT?VT.cod:null,PD=null,rt=null,misCods=null;
+function salir(msg){VT=null;ses=null;PD=null;sessionStorage.removeItem('va_vtok_'+BIZ);if(msg)toast(msg);render()}
+async function act(fn){try{return await fn()}catch(e){if(esSesionVencida(e))salir(e.message);else toast(e.message);throw e}}
+async function login(){const c=$('#lC').value.trim().toUpperCase(),p=$('#lP').value.trim();if(!c||!p)return toast('Código y PIN');
+ try{const r=await rpc('va_login_vendedor',{p_biz:BIZ,p_cod:c,p_pin:p});if(!r)return toast('Código o PIN incorrecto');
+  VT=r;ses=r.cod;sessionStorage.setItem('va_vtok_'+BIZ,JSON.stringify(r));render();iniciar()}catch(e){toast(e.message)}}
+async function sincProm(){if(!VT)return;const r=await act(()=>rpc('va_promotor_datos',{p_token:VT.token}));
+ r.pedidos.forEach(p=>p.total=Number(p.total));r.ranking.forEach(v=>{v.ven=Number(v.ven);v.cant=Number(v.cant)});r.caja=Number(r.caja);r.comision=Number(r.comision);
+ if(misCods)r.pedidos.filter(p=>!misCods.has(p.cod)).forEach(p=>notify('🎉 Venta con tu enlace',p.cod+' · '+money(p.total)));
+ misCods=new Set(r.pedidos.map(p=>p.cod));PD=r;onRender()}
+async function iniciar(){try{await cargarCatalogo(true)}catch(e){toast(e.message)}
+ try{await sincProm()}catch(e){return}if(!rt)rt=escuchar('va:b:'+BIZ,sincProm)}
+let vd={};const vdTot=()=>((N()&&N().productos)||[]).reduce((s,p)=>s+(vd[p.id]||0)*p.p,0);
+function vq(id,d){const keep={n:$('#dN')?.value,t:$('#dT')?.value,d:$('#dD')?.value};vd[id]=Math.max(0,Math.min(99,(vd[id]||0)+d));render();if($('#dN')){$('#dN').value=keep.n||'';$('#dT').value=keep.t||'';$('#dD').value=keep.d||''}}
+async function genCobro(){const m=Math.round(parseFloat($('#kM').value)*100)/100;if(!(m>0))return toast('Escribe el monto que recibiste');
+ try{const k=await act(()=>rpc('va_promotor_cobro',{p_token:VT.token,p_monto:m}));$('#kM').value='';$('#kM').blur();toast('Código '+k+' · dáselo al cliente');await sincProm()}catch(e){}}
+async function ventaDirecta(){const tot=vdTot(),nombre=$('#dN').value.trim(),tel=$('#dT').value.trim(),dir=$('#dD').value.trim();
+ if(!(tot>0))return toast('Agrega los productos vendidos');if(!nombre||!dir)return toast('Nombre y dirección del cliente');
+ if(!confirm('¿Confirmas que recibiste '+money(tot)+' en efectivo?'))return;
+ try{const r=await act(()=>rpc('va_promotor_venta',{p_token:VT.token,p_items:Object.entries(vd).filter(([,q])=>q>0).map(([id,q])=>({id,q})),p_nombre:nombre,p_tel:tel,p_dir:dir}));
+  vd={};misCods&&misCods.add(r.cod);document.activeElement&&document.activeElement.blur();await sincProm();alert('Venta '+r.cod+' registrada. Comprobante para el cliente: '+r.k)}catch(e){}}
+function render(){const n=N()||{nombre:BIZ,productos:[]};if(!ses){$('#root').innerHTML=`<div style="text-align:center;margin:40px 0 20px"><div class="brand" style="justify-content:center"><i>🤝</i></div>
+ <h1 style="font-size:30px;margin-top:14px">Vende y <span class="gtxt">gana</span></h1><p class="mut">Equipo de ${esc(n.nombre)} · demo: ANA01 / 1234</p></div>
+ <div class="box"><label>Negocio</label><select onchange="location.href=BASE+'promotor/?n='+this.value">${Object.entries(DB.negocios).map(([k,v])=>`<option value="${esc(k)}" ${k===BIZ?'selected':''}>${esc(v.nombre)}</option>`).join('')}</select>
+ <label>Código</label><input id="lC" maxlength="12" placeholder="ANA01"><label>PIN</label><input id="lP" type="password" inputmode="numeric" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter')login()"><button class="btn full" onclick="login()">Entrar</button></div>`;return}
+ if(!PD){$('#root').innerHTML='<p class="mut" style="text-align:center;margin-top:60px">Cargando…</p>';return}
+ const r=PD.ranking,com=v=>v.ven*PD.comision/100,misRec=PD.recibos,caja=PD.caja;
+ const me=r.find(v=>v.cod===ses)||{n:VT.n,cod:ses,ven:0,cant:0},pos=r.indexOf(me)+1||r.length+1,mis=PD.pedidos,meta=100,link=BASE+'tienda/?n='+BIZ+'&ref='+ses;
+ $('#root').innerHTML=`<div class="rw" style="border:0"><h2>Hola, <span class="gtxt">${esc(me.n)}</span> 👋</h2><button class="btn sm dark" onclick="rpc('va_logout',{p_token:VT.token}).catch(()=>{});salir()">Salir</button></div>
+ <div class="kp"><div class="k"><b class="gtxt">${money(com(me))}</b><span>Mi comisión</span></div><div class="k"><b>${me.cant}</b><span>Cobrados</span></div><div class="k"><b>#${pos}</b><span>Ranking</span></div></div>
+ <div class="box" style="border-color:rgba(255,210,63,.45)"><b>🏠 Venta casa por casa</b><p class="mut" style="margin:6px 0 10px">Registra aquí la venta cuando recibas el efectivo en mano.</p>
+ ${(n.productos||[]).map(p=>`<div class="rw"><span>${esc(p.n)} <span class="mut">${money(p.p)}</span></span><span class="qty" style="gap:8px"><button onclick="vq('${p.id}',-1)">−</button><b>${vd[p.id]||0}</b><button onclick="vq('${p.id}',1)">+</button></span></div>`).join('')}
+ <div class="rw" style="border:0"><b>Total recibido</b><b class="gtxt" style="font-size:20px">${money(vdTot())}</b></div>
+ <input id="dN" maxlength="60" placeholder="Nombre del cliente"><input id="dT" maxlength="30" placeholder="Teléfono del cliente" inputmode="tel"><input id="dD" maxlength="160" placeholder="Dirección / casa">
+ <button class="btn full" onclick="ventaDirecta()">💵 Recibí ${money(vdTot())} · Registrar venta</button></div>
+ <div class="box"><b>🔑 Código de cobro</b><p class="mut" style="margin:6px 0 10px">Si el cliente prefiere hacer el pedido en la tienda, recibe el efectivo y genera un código. Sirve una sola vez, para ese monto, y vence en ${RECIBO_MIN} min.</p>
+ <div style="display:flex;gap:8px"><input id="kM" type="number" step="0.01" inputmode="decimal" placeholder="Monto recibido $" style="margin:0"><button class="btn" onclick="genCobro()">Generar</button></div>
+ ${misRec.length?misRec.map(x=>{const venc=Date.now()-x.t>RECIBO_MIN*60000;return`<div class="rw"><span><b class="refn" style="font-family:monospace;font-size:18px;letter-spacing:2px">${esc(x.k)}</b> <span class="mut">${money(x.monto)} · ${hora(x.t)}</span></span><span class="pill ${x.usado?'entregado':venc?'rechazado':'nuevo'}">${x.usado?'usado '+esc(x.usado):venc?'vencido':'activo'}</span></div>`}).join(''):''}</div>
+ ${caja>0?`<div class="box"><b>💵 Efectivo que debes entregar al negocio</b><div class="rw" style="border:0"><span class="mut">Ventas en efectivo aceptadas</span><b class="gtxt" style="font-size:20px">${money(caja)}</b></div><p class="mut">Tu comisión: ${money(caja*PD.comision/100)} · Entregas: ${money(caja*(1-PD.comision/100))}</p></div>`:''}
+ <div class="box"><b>Meta del mes</b><div class="meta"><div style="width:${Math.min(100,me.ven/meta*100)}%"></div></div><span class="mut">${money(me.ven)} de ${money(meta)} en ventas</span></div>
+ <div class="box"><b>Mi enlace</b><p class="mut" style="margin:6px 0">Cada venta que entre por aquí se te asigna sola.</p><input readonly value="${link}" onclick="this.select()">
+ <div style="display:flex;gap:8px"><button class="btn sm" onclick="navigator.clipboard&&navigator.clipboard.writeText('${link}');toast('Enlace copiado')">Copiar</button>
+ <a class="btn sm ghost" href="https://wa.me/?text=${encodeURIComponent('Mira esta tienda: '+link)}" target="_blank">Compartir</a></div></div>
+ <div class="box"><b>Ranking del equipo</b>${r.map((v,i)=>`<div class="rw"><span>${['🥇','🥈','🥉'][i]||'#'+(i+1)} ${esc(v.n)}${v.cod===ses?' (tú)':''}</span><b>${money(v.ven)}</b></div>`).join('')}</div>
+ <div class="box"><b>Mis pedidos</b>${mis.map(p=>`<div class="rw"><span>${esc(p.cod)} · ${esc(p.cliente.nombre)}</span><span class="pill ${esc(p.estado)}">${esc(p.estado)}</span></div>`).join('')||'<p class="mut" style="margin-top:8px">Aún no tienes pedidos. ¡Comparte tu enlace!</p>'}</div>`}
+onRender=()=>{const a=document.activeElement;if(a&&a.tagName==="INPUT"&&a.value)return;render()};
+render();
+if(ses)iniciar();else cargarCatalogo().then(render).catch(()=>{});
+</script></body></html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07070a"><meta name="robots" content="noindex">
+<title>Panel del negocio</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css"><link rel="manifest" href="../manifest.json">
+<style>
+body{padding-bottom:80px;background:radial-gradient(circle at 80% -10%,rgba(255,190,0,.18),transparent 45%),var(--bg)}
+.bar{position:sticky;top:0;z-index:30;background:rgba(7,7,10,.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);padding:12px 0}
+.bar .wrap{display:flex;align-items:center;gap:10px}.bar .sp{flex:1}
+.bar select{width:auto;margin:0;padding:8px 10px;font-size:13px}
+.tabs{position:fixed;bottom:0;left:0;right:0;z-index:30;background:rgba(15,15,20,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex}
+.tabs button{flex:1;background:none;border:0;color:var(--mut);padding:9px 2px 11px;font:500 11px inherit;font-family:inherit;position:relative}
+.tabs button b{display:block;font-size:21px;margin-bottom:2px}.tabs button.on{color:var(--g2)}
+.tabs .bd{position:absolute;top:4px;left:calc(50% + 6px);background:var(--bad);color:#fff;font:700 10px/17px sans-serif;min-width:17px;height:17px;border-radius:9px;padding:0 4px}
+.tabs .bd:empty{display:none}
+main{padding-top:20px}
+h2{font-size:24px;font-weight:800;margin-bottom:16px}
+.kp{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px}@media(min-width:700px){.kp{grid-template-columns:repeat(4,1fr)}}
+.k{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;position:relative;overflow:hidden}
+.k::after{content:'';position:absolute;width:120px;height:120px;right:-40px;top:-40px;border-radius:50%;background:radial-gradient(rgba(255,200,0,.25),transparent 70%);animation:bob 4s ease-in-out infinite}
+.k span{color:var(--mut);font-size:12px}.k b{display:block;font-size:26px;font-weight:800;margin-top:4px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px;animation:pop .3s ease}
+.rw{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.cv{display:flex;gap:12px;align-items:center;padding:14px;border-bottom:1px solid var(--line);cursor:pointer}
+.cv .av{width:44px;height:44px;border-radius:50%;background:var(--gold);color:#1a1200;display:grid;place-items:center;font-weight:800}
+.cv div{flex:1;min-width:0}.cv p{color:var(--mut);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chatwrap{display:flex;flex-direction:column;height:calc(100vh - 220px);background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.pr2{display:flex;gap:12px;align-items:center}.pr2 img{width:60px;height:60px;border-radius:12px;object-fit:cover}
+.login{min-height:100vh;display:grid;place-items:center;padding:20px}
+.login .box{max-width:360px;width:100%;text-align:center;padding:30px}
+.chart{display:flex;align-items:flex-end;gap:8px;height:120px;margin-top:10px}
+.chart div{flex:1;background:var(--gold);border-radius:8px 8px 0 0;min-height:4px;animation:grow 1s ease}
+@keyframes grow{from{height:0!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+<script src="../core.js"></script>
+<script>
+/* Panel del dueño — en línea. El PIN se verifica en el servidor (hash bcrypt) y devuelve un token de 12 h. */
+let tab=location.hash.slice(1)||'inicio',chatWith=null,TOK=sessionStorage.getItem('va_tok_'+BIZ),ok=!!TOK,listo=false,USO=null;
+let desde=null,ultMsg=0,rt=null;
+function salir(msg){TOK=null;ok=false;listo=false;sessionStorage.removeItem('va_tok_'+BIZ);if(msg)toast(msg);render()}
+/* Envuelve acciones del panel: muestra errores y maneja sesión vencida */
+async function act(fn){try{return await fn()}catch(e){if(esSesionVencida(e))salir(e.message);else toast(e.message);throw e}}
+async function login(){const pin=$('#pin').value.trim();if(!pin)return;
+ try{const t=await rpc('va_login_panel',{p_biz:BIZ,p_pin:pin});if(!t)return toast('PIN incorrecto');
+  TOK=t;sessionStorage.setItem('va_tok_'+BIZ,t);ok=true;render();iniciar()}catch(e){toast(e.message)}}
+function vLogin(){const n=N()||{emoji:'✨',nombre:BIZ};return`<div class="login"><div class="box"><div class="brand" style="justify-content:center;margin-bottom:14px"><i>${n.emoji}</i></div>
+ <h2 style="margin-bottom:4px">Panel de <span class="gtxt">${esc(n.nombre)}</span></h2><p class="mut" style="margin-bottom:18px">Solo para el dueño del negocio · PIN demo: 0000</p>
+ <input id="pin" type="password" inputmode="numeric" maxlength="6" placeholder="PIN" style="text-align:center;font-size:22px;letter-spacing:8px" onkeydown="if(event.key==='Enter')login()">
+ <button class="btn full" onclick="login()">Entrar</button></div></div>`}
+/* Carga inicial y luego solo cambios (delta) */
+async function sincPanel(){if(!TOK)return;
+ const r=await act(()=>rpc('va_panel_datos',{p_token:TOK,p_desde:desde,p_desde_msg:ultMsg}));
+ const primera=desde===null,np=[],nm=[];if(!N())DB.negocios[BIZ]={productos:[],cuentas:[]};
+ Object.assign(N(),{nombre:r.negocio.nombre,lema:r.negocio.lema,emoji:r.negocio.emoji,hero:r.negocio.hero,comision:Number(r.negocio.comision),auto_resp:r.negocio.auto_resp,vendedores:r.vendedores});
+ r.pedidos.forEach(p=>{p.total=Number(p.total);const i=DB.pedidos.findIndex(x=>x.cod===p.cod);if(i<0){DB.pedidos.push(p);if(!primera)np.push(p)}else DB.pedidos[i]=p});
+ DB.pedidos.sort((a,b)=>a.t-b.t);
+ r.mensajes.forEach(m=>{if(!DB.mensajes.some(x=>x.id===m.id)){DB.mensajes.push(m);if(!primera)nm.push(m)}});
+ if(r.mensajes.length)ultMsg=Math.max(ultMsg,...r.mensajes.map(m=>m.id));
+ if(r.resumen)DB.resumen=r.resumen.map(x=>({...x,total:Number(x.total)}));
+ desde=r.ahora;listo=true;
+ if(np.length||nm.length)onNuevo(nm,np);
+ render()}
+async function iniciar(){try{await cargarCatalogo(true)}catch(e){toast(e.message)}
+ try{await sincPanel()}catch(e){return}
+ if(!rt)rt=escuchar('va:b:'+BIZ,sincPanel)}
+const P=()=>DB.pedidos.filter(p=>p.biz===BIZ);
+function convs(){const m=DB.mensajes.filter(x=>x.biz===BIZ);const ids=[...new Set(m.map(x=>x.de==='negocio'?x.para:x.de))];
+ return ids.map(id=>{const ms=m.filter(x=>x.de===id||x.para===id);const nom=(ms.find(x=>x.nom)||{}).nom||'Cliente';return{id,nom,ult:ms[ms.length-1],nl:ms.filter(x=>x.para==='negocio'&&!x.leido).length}}).sort((a,b)=>b.ult.t-a.ult.t)}
+/* Resumen histórico (pedidos viejos archivados para ahorrar espacio) */
+const hist=ref=>DB.resumen.filter(r=>ref===undefined||r.ref===ref).reduce((a,r)=>({c:a.c+r.pedidos,v:a.v+r.total}),{c:0,v:0});
+function rank(){const n=N();return (n.vendedores||[]).map(v=>{const ps=P().filter(p=>p.ref===v.cod&&p.estado==='cobrado');const h=hist(v.cod);const ventas=ps.reduce((s,p)=>s+p.total,0)+h.v;const caja=P().filter(p=>p.ref===v.cod&&/efectivo/i.test(p.pago)&&p.estado!=='rechazado'&&p.pagoEstado==='verificado'&&!p.liquidado).reduce((s,p)=>s+p.total,0);return{...v,cant:ps.length+h.c,ventas,com:ventas*n.comision/100,caja}}).sort((a,b)=>b.ventas-a.ventas)}
+const tiendaURL=()=>BASE+'tienda/?n='+BIZ;
+function vInicio(){const ps=P(),hoy=new Date().toDateString();const cob=ps.filter(p=>p.estado==='cobrado');
+ const hoyV=cob.filter(p=>new Date(p.t).toDateString()===hoy).reduce((s,p)=>s+p.total,0),tot=cob.reduce((s,p)=>s+p.total,0)+hist().v;
+ const dias=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return cob.filter(p=>new Date(p.t).toDateString()===d.toDateString()).reduce((s,p)=>s+p.total,0)});const mx=Math.max(...dias,1);
+ return`<h2>Hola 👋 <span class="gtxt">${esc(N().nombre)}</span></h2>
+ <div class="kp"><div class="k"><span>Cobrado hoy</span><b class="gtxt">${money(hoyV)}</b></div><div class="k"><span>Pedidos nuevos</span><b>${ps.filter(p=>p.estado==='nuevo').length}</b></div>
+ <div class="k"><span>Mensajes sin leer</span><b>${convs().reduce((s,c)=>s+c.nl,0)}</b></div><div class="k"><span>Total cobrado</span><b>${money(tot)}</b></div></div>
+ <div class="box"><b>Ventas últimos 7 días</b><div class="chart">${dias.map(v=>`<div style="height:${v/mx*100}%" title="${money(v)}"></div>`).join('')}</div></div>
+ <div class="box"><b>Tu tienda pública</b><p class="mut" style="margin:6px 0 10px">Comparte este enlace con tus clientes. Está separado de este panel.</p>
+ <input readonly value="${tiendaURL()}" onclick="this.select();navigator.clipboard&&navigator.clipboard.writeText(this.value);toast('Enlace copiado')"><a class="btn sm" href="${tiendaURL()}" target="_blank">Abrir tienda ↗</a></div>`}
+function vPedidos(){const ps=P().slice().reverse();return`<h2>Pedidos</h2>`+(ps.map(p=>`<div class="box"><div class="rw"><b>${esc(p.cod)} · ${esc(p.cliente.nombre)}</b><span class="pill ${esc(p.estado)}">${esc(p.estado)}</span></div>
+ <p class="mut" style="margin:6px 0">${p.items.map(i=>i.q+'× '+esc(i.n)).join(', ')}</p><p class="mut">📍 ${esc(p.cliente.dir)} · 📞 ${esc(p.cliente.tel)} · 💳 ${esc(p.pago)}${p.ref?' · 🤝 '+esc(p.ref):''} · ${hora(p.t)}</p>
+ <div class="rw" style="margin-top:8px"><b class="gtxt" style="font-size:20px">${money(p.total)}</b></div>${vPago(p)}<div class="acts">
+ ${p.estado==='nuevo'?`<button class="btn sm" onclick="verif('${esc(p.cod)}',true)">✅ Aceptar pedido</button><button class="btn sm dark" onclick="verif('${esc(p.cod)}',false)">❌ Rechazar</button>`:''}${p.estado==='confirmado'?`<button class="btn sm" onclick="est('${esc(p.cod)}','entregado')">🚚 Entregado</button>`:''}${p.estado==='entregado'?`<button class="btn sm" onclick="est('${esc(p.cod)}','cobrado')">💰 Cobrado</button>`:''}
+ ${p.directa?'':`<button class="btn sm dark" onclick="abrir('${esc(p.cliente.id)}')">💬 Chat</button>`}</div></div>`).join('')||'<p class="mut">Aún no hay pedidos. Abre tu tienda en otra pestaña o en otro teléfono y haz uno de prueba.</p>')}
+function vPago(p){if(!p.pagoEstado)return'';
+ const ef=/efectivo/i.test(p.pago),v=ef?(N().vendedores||[]).find(x=>x.cod===p.refPago):null;
+ const cls=p.pagoEstado==='verificado'?'ok':p.pagoEstado==='rechazado'?'no':'';
+ const lbl=p.pagoEstado==='verificado'?(ef?'efectivo confirmado':'pago verificado'):p.pagoEstado;
+ return`<div class="vp ${cls}"><div class="rw"><span>${ef?'💵 Efectivo · entregado al promotor':'💳 '+esc(p.pago)+' · Referencia'}</span><span class="pill ${cls?'':'nuevo'}">${esc(lbl)}</span></div>
+ <b class="refn">${esc(ef?(v?v.n+' · '+v.cod:p.refPago):p.refPago)}</b>${ef?`<p style="margin-top:4px">${p.recibo?`🧾 Cobro ${esc(p.recibo)} registrado por el promotor${p.directa?' (venta casa por casa)':''}`:'⚠️ Sin código de cobro'}${p.liquidado?' · 💰 ya te entregó el efectivo':''}</p>`:''}
+ ${p.comprobante?`<p style="margin-top:6px"><a href="${img(p.comprobante)}" target="_blank" rel="noopener">🧾 Ver foto del comprobante</a> <span class="mut">(se borra a los 30 días)</span></p>`:''}${p.pagoEstado==='por verificar'?`<p class="mut" style="margin:6px 0">${ef?`El promotor registró que recibió ${money(p.total)}. Ese efectivo queda a su cargo hasta que te lo entregue.`:`Revisa en tu banco que llegó ${money(p.total)} con esta referencia.`}</p>`:''}</div>`}
+async function liquidar(cod){const v=N().vendedores.find(x=>x.cod===cod);if(!confirm('¿Confirmas que '+v.n+' te entregó todo su efectivo?'))return;
+ await act(()=>rpc('va_panel_liquidar',{p_token:TOK,p_vend:cod}));toast('Efectivo de '+v.n+' recibido');sincPanel()}
+function _setPed(p){p.total=Number(p.total);const i=DB.pedidos.findIndex(x=>x.cod===p.cod);if(i>=0)DB.pedidos[i]=p}
+async function verif(cod,okp){const p=P().find(x=>x.cod===cod),ef=/efectivo/i.test(p.pago);
+ if(okp){_setPed(await act(()=>rpc('va_panel_pedido',{p_token:TOK,p_cod:cod,p_estado:'confirmado',p_pago_estado:'verificado',
+   p_msg:`✅ ${ef?'Confirmamos tu pago en efectivo con el promotor':'Verificamos tu pago (Ref. '+p.refPago+')'}. Tu pedido ${cod} está aceptado y en preparación.`})))}
+ else{if(!confirm('¿Rechazar este pedido? Se le avisará al cliente.'))return;
+  _setPed(await act(()=>rpc('va_panel_pedido',{p_token:TOK,p_cod:cod,p_estado:'rechazado',p_pago_estado:'rechazado',
+   p_msg:`⚠️ No pudimos confirmar el pago de tu pedido ${cod} (${ef?'promotor '+p.refPago:'Ref. '+p.refPago}). Revisa los datos y escríbenos por aquí.`})))}
+ render();sincPanel()}
+function vMensajes(){if(chatWith){const ms=DB.mensajes.filter(m=>m.biz===BIZ&&(m.de===chatWith||m.para===chatWith));
+  if(ms.some(m=>m.para==='negocio'&&!m.leido)){ms.forEach(m=>{if(m.para==='negocio')m.leido=true});rpc('va_panel_leido',{p_token:TOK,p_cliente:chatWith}).catch(()=>{})}
+  const cv=convs().find(x=>x.id===chatWith);return`<div class="rw" style="margin-bottom:12px"><button class="btn sm dark" onclick="chatWith=null;render()">← Volver</button><b>${esc(cv?cv.nom:'Cliente')}</b></div>
+  <div class="chatwrap"><div class="msgs" id="msgs">${ms.map(m=>`<div class="m ${m.de==='negocio'?'yo':'el'}">${esc(m.texto)}<small>${hora(m.t)}${m.pedido?' · '+esc(m.pedido):''}</small></div>`).join('')}</div>
+  <div class="send"><input id="txt" maxlength="1000" placeholder="Responder…" onkeydown="if(event.key==='Enter')resp()"><button class="btn" onclick="resp()">➤</button></div></div>`}
+ return`<h2>Mensajes</h2><div class="box" style="padding:0">${convs().map(c=>`<div class="cv" onclick="abrir('${esc(c.id)}')"><span class="av">${esc((c.nom[0]||'?').toUpperCase())}</span><div><b>${esc(c.nom)}</b><p>${esc(c.ult.texto)}</p></div>${c.nl?`<span class="pill nuevo">${c.nl}</span>`:`<span class="mut">${hora(c.ult.t)}</span>`}</div>`).join('')||'<p class="mut" style="padding:16px">Sin conversaciones todavía.</p>'}</div>`}
+function vProductos(){return`<h2>Productos</h2>`+(N().productos||[]).map(p=>`<div class="box"><div class="rw"><div class="pr2"><img src="${img(p.img)}" loading="lazy"><div><b>${esc(p.n)}</b><br><span class="gtxt" style="font-weight:700">${money(p.p)}</span></div></div>
+ <div style="display:flex;gap:6px"><button class="btn sm dark" title="Editar" onclick="editP('${p.id}')">✏️</button><button class="btn sm dark" title="Cambiar foto" onclick="fotoP('${p.id}')">📷</button><button class="btn sm dark" title="Eliminar" onclick="delP('${p.id}')">🗑️</button></div></div></div>`).join('')+
+ `<div class="box"><b>Nuevo producto</b><br><br><label>Nombre</label><input id="pN" maxlength="80"><label>Descripción corta</label><input id="pD" maxlength="160"><label>Precio (USD)</label><input id="pP" type="number" step="0.01" inputmode="decimal">
+ <label>Foto (se comprime sola a WebP liviano)</label><input id="pF" type="file" accept="image/*"><button class="btn full" id="bAddP" onclick="addP()">Agregar producto</button></div>`}
+function vVendedores(){return`<h2>Vendedores</h2>`+rank().map((v,i)=>`<div class="box"><div class="rw"><b>${['🥇','🥈','🥉'][i]||'#'+(i+1)} ${esc(v.n)} <span class="mut">${esc(v.cod)}</span></b><b class="gtxt">${money(v.com)}</b></div>
+ ${v.caja>0?`<div class="vp" style="margin:8px 0"><div class="rw"><span>💵 Efectivo por entregarte</span><b class="gtxt" style="font-size:18px">${money(v.caja)}</b></div><p class="mut" style="margin:4px 0">Neto después de su comisión: ${money(v.caja*(1-N().comision/100))}</p><button class="btn sm" onclick="liquidar('${esc(v.cod)}')">Recibí el efectivo de ${esc(v.n)}</button></div>`:''}
+ <p class="mut" style="margin:6px 0">${v.cant} pedidos cobrados · ventas ${money(v.ventas)} · comisión ${N().comision}%</p>
+ <input readonly value="${tiendaURL()}&ref=${esc(v.cod)}" onclick="this.select();navigator.clipboard&&navigator.clipboard.writeText(this.value);toast('Enlace copiado')"></div>`).join('')+
+ `<div class="box"><b>Agregar vendedor</b><br><br><input id="vN" maxlength="40" placeholder="Nombre"><input id="vC" maxlength="12" placeholder="Código (ej. PEDRO3)"><input id="vP" placeholder="PIN de 4 a 6 dígitos" inputmode="numeric" maxlength="6"><button class="btn full" onclick="addV()">Agregar</button>
+ <p class="mut" style="margin-top:10px">Tus vendedores entran en: ${BASE}promotor/?n=${BIZ}</p></div>`}
+function vUso(){if(!USO)return`<button class="btn full dark" onclick="verUso()">📊 Ver uso del plan gratis</button>`;
+ const bar=(v,m)=>`<div class="chart" style="height:10px;margin:6px 0 10px"><div style="height:100%;width:${Math.min(100,v/m*100)}%;flex:none"></div></div>`;
+ return`<b>📊 Uso del plan gratis de Supabase</b><p class="mut" style="margin:8px 0 0">Base de datos: ${USO.db_mb} MB de ${USO.db_limite_mb} MB</p>${bar(USO.db_mb,USO.db_limite_mb)}
+ <p class="mut">Imágenes: ${USO.storage_mb} MB de ${USO.storage_limite_mb} MB (${USO.filas.imagenes} archivos)</p>${bar(USO.storage_mb,USO.storage_limite_mb)}
+ <p class="mut">Limpieza automática diaria: chat > 60 días, fotos de comprobantes > 30 días, pedidos cerrados > 6 meses (se guardan los totales).</p>`}
+async function verUso(){USO=await act(()=>rpc('va_panel_uso',{p_token:TOK}));render()}
+function vAjustes(){const n=N();return`<h2>Ajustes</h2><div class="box"><label>Nombre del negocio</label><input id="aN" maxlength="60" value="${esc(n.nombre)}"><label>Frase de portada</label><input id="aL" maxlength="120" value="${esc(n.lema)}">
+ <label>Comisión de vendedores (%)</label><input id="aC" type="number" value="${n.comision}">
+ <label>Nuevo PIN del panel (déjalo vacío para no cambiarlo)</label><input id="aK" type="password" placeholder="••••" inputmode="numeric" maxlength="6">
+ <label>Foto de portada (opcional)</label><input id="aH" type="file" accept="image/*">
+ <label style="display:flex;gap:8px;align-items:center;margin:4px 0 14px"><input id="aA" type="checkbox" style="width:auto;margin:0" ${n.auto_resp?'checked':''}> Respuesta automática al cliente</label>
+ <button class="btn full" id="bGuardar" onclick="guardar()">Guardar</button></div>
+ <h2 style="margin-top:22px">Métodos de pago</h2><p class="mut" style="margin:-8px 0 12px">Estos datos le salen al cliente al elegir el método. Con Zelle, Pago Móvil o Binance se le pide el número de referencia.</p>
+ ${(n.cuentas||[]).map((c,i)=>`<div class="box"><div class="rw"><b>${esc(c.nombre)}</b><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" style="width:auto;margin:0" ${c.activo?'checked':''} onchange="activarCuenta(${i},this.checked)"> Activo</label></div>
+ ${c.id==='efectivo'?'<p class="mut" style="margin-top:6px">El cliente paga en efectivo al promotor, que le da un código de cobro.</p>':Object.entries(c.campos||{}).map(([k,v])=>`<label>${esc(k)}</label><input class="cf" maxlength="100" data-i="${i}" data-k="${esc(k)}" value="${esc(v)}">`).join('')+`<button class="btn sm full" onclick="guardarCuenta(${i})">Guardar ${esc(c.nombre)}</button>`}</div>`).join('')}
+ <div class="box">${vUso()}</div>
+ <div class="box"><button class="btn full dark" onclick="permiso()">🔔 Activar notificaciones</button><br><br><button class="btn full dark" onclick="ding()">🔊 Probar sonido</button><br><br>
+ <button class="btn full dark" onclick="cerrarSesion()">Cerrar sesión</button></div>`}
+async function est(cod,e){const t={confirmado:`Tu pedido ${cod} está confirmado ✅ Pronto va en camino.`,entregado:`Tu pedido ${cod} fue entregado. ¡Gracias por tu compra! 🙏`}[e];
+ _setPed(await act(()=>rpc('va_panel_pedido',{p_token:TOK,p_cod:cod,p_estado:e,p_msg:t||null})));render();sincPanel()}
+function abrir(id){chatWith=id;go('mensajes')}
+async function resp(){const t=$('#txt').value.trim();if(!t)return;$('#txt').value='';
+ try{await act(()=>rpc('va_panel_enviar',{p_token:TOK,p_cliente:chatWith,p_texto:t}));await sincPanel()}catch(e){$('#txt')&&($('#txt').value=t)}}
+async function delP(id){if(!confirm('¿Eliminar producto? También se borra su foto.'))return;
+ await act(()=>rpc('va_panel_producto_borrar',{p_token:TOK,p_id:+id}));N().productos=N().productos.filter(p=>p.id!==id);actualizarCache();render()}
+const _prod=x=>({id:String(x.id),n:x.n,d:x.d,p:Number(x.p),img:x.img});
+/* Sube una foto comprimida con ticket de un solo uso */
+async function subirFoto(file,opts){const blob=await comprimirImagen(file,opts);const tk=await act(()=>rpc('va_panel_ticket',{p_token:TOK}));return subirImagen(blob,tk)}
+async function addP(){const n=$('#pN').value.trim(),p=parseFloat($('#pP').value),d=$('#pD').value.trim(),f=$('#pF').files[0];if(!n||!(p>0))return toast('Nombre y precio');
+ const b=$('#bAddP');b.disabled=true;b.textContent='Guardando…';
+ try{const path=f?await subirFoto(f,{max:800,q:0.7,kb:80}):null;
+  const r=await act(()=>rpc('va_panel_producto',{p_token:TOK,p_id:null,p_n:n,p_d:d,p_p:p,p_img:path}));
+  N().productos.push(_prod(r));actualizarCache();toast('Producto agregado');render()}
+ catch(e){toast(e.message);b.disabled=false;b.textContent='Agregar producto'}}
+async function editP(id){const p=N().productos.find(x=>x.id===id);const n=prompt('Nombre',p.n);if(n===null)return;const d=prompt('Descripción',p.d||'');if(d===null)return;
+ const pr=parseFloat(prompt('Precio (USD)',p.p));if(!(pr>0))return toast('Precio inválido');
+ try{const r=await act(()=>rpc('va_panel_producto',{p_token:TOK,p_id:+id,p_n:n,p_d:d,p_p:pr,p_img:null}));Object.assign(p,_prod(r));actualizarCache();render()}catch(e){}}
+function fotoP(id){const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+ inp.onchange=async()=>{const f=inp.files[0];if(!f)return;const p=N().productos.find(x=>x.id===id);toast('Subiendo foto…');
+  try{const path=await subirFoto(f,{max:800,q:0.7,kb:80});
+   /* el servidor guarda la nueva ruta y BORRA la foto anterior del bucket */
+   const r=await act(()=>rpc('va_panel_producto',{p_token:TOK,p_id:+id,p_n:p.n,p_d:p.d,p_p:p.p,p_img:path}));Object.assign(p,_prod(r));actualizarCache();toast('Foto actualizada');render()}catch(e){toast(e.message)}};
+ inp.click()}
+async function addV(){const n=$('#vN').value.trim(),c=$('#vC').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,''),pin=$('#vP').value.trim();if(!n||!c)return toast('Nombre y código');
+ if(!/^\d{4,6}$/.test(pin))return toast('El PIN debe tener de 4 a 6 dígitos');
+ try{await act(()=>rpc('va_panel_vendedor',{p_token:TOK,p_cod:c,p_n:n,p_pin:pin}));toast('Vendedor agregado');document.activeElement&&document.activeElement.blur();await sincPanel()}catch(e){}}
+async function guardar(){const n=N(),b=$('#bGuardar'),f=$('#aH').files[0];b.disabled=true;b.textContent='Guardando…';
+ try{const hero=f?await subirFoto(f,{max:1200,q:0.6,kb:120}):null;
+  const r=await act(()=>rpc('va_panel_negocio',{p_token:TOK,p_nombre:$('#aN').value.trim()||n.nombre,p_lema:$('#aL').value.trim(),
+   p_comision:Math.max(0,parseFloat($('#aC').value)||0),p_auto:$('#aA').checked,p_pin_nuevo:$('#aK').value.trim()||null,p_hero:hero}));
+  Object.assign(n,{nombre:r.nombre,lema:r.lema,comision:Number(r.comision),auto_resp:r.auto_resp,hero:r.hero});actualizarCache();
+  document.activeElement&&document.activeElement.blur();toast('Guardado ✨');render()}
+ catch(e){b.disabled=false;b.textContent='Guardar'}}
+async function activarCuenta(i,v){const c=N().cuentas[i];try{await act(()=>rpc('va_panel_cuenta',{p_token:TOK,p_id:c.id,p_activo:v,p_campos:null}));c.activo=v;actualizarCache()}catch(e){render()}}
+async function guardarCuenta(i){const c=N().cuentas[i],campos={...c.campos};document.querySelectorAll('.cf[data-i="'+i+'"]').forEach(e=>campos[e.dataset.k]=e.value.trim());
+ try{await act(()=>rpc('va_panel_cuenta',{p_token:TOK,p_id:c.id,p_activo:null,p_campos:campos}));c.campos=campos;actualizarCache();document.activeElement&&document.activeElement.blur();toast('Datos de '+c.nombre+' guardados')}catch(e){}}
+function cerrarSesion(){rpc('va_logout',{p_token:TOK}).catch(()=>{});salir()}
+function permiso(){if(!('Notification' in window))return toast('Este navegador no permite notificaciones');Notification.requestPermission().then(p=>toast(p==='granted'?'Notificaciones activadas 🔔':'Permiso no concedido'))}
+function go(t){tab=t;location.hash=t;if(t!=='mensajes'||!chatWith)scrollTo(0,0);render()}
+function render(){if(!ok){$('#root').innerHTML=vLogin();return}
+ if(!listo||!N()){$('#root').innerHTML='<div class="login"><p class="mut">Cargando tu panel…</p></div>';return}
+ const nl=convs().reduce((s,c)=>s+c.nl,0),nv=P().filter(p=>p.estado==='nuevo').length;
+ const keep=document.activeElement&&document.activeElement.id==='txt'?$('#txt').value:null,form=document.activeElement&&(['pN','pD','pP','pF','vN','vC','vP','aN','aL','aC','aK','aH'].includes(document.activeElement.id)||document.activeElement.classList.contains('cf'));
+ if(form)return; /* no interrumpir mientras escribe */
+ const T=(id,ic,t,b)=>`<button class="${tab===id?'on':''}" onclick="${id==='mensajes'?'chatWith=null;':''}go('${id}')"><b>${ic}</b>${t}<span class="bd">${b||''}</span></button>`;
+ $('#root').innerHTML=`<div class="bar"><div class="wrap"><span class="brand"><i>${N().emoji}</i><span style="font-size:15px">Panel</span></span><span class="sp"></span>
+ <select onchange="cambiar(this.value)">${Object.entries(DB.negocios).map(([k,v])=>`<option value="${esc(k)}" ${k===BIZ?'selected':''}>${esc(v.nombre)}</option>`).join('')}</select>
+ <a class="btn sm" href="${tiendaURL()}" target="_blank">Tienda ↗</a></div></div>
+ <main class="wrap">${({inicio:vInicio,pedidos:vPedidos,mensajes:vMensajes,productos:vProductos,vendedores:vVendedores,ajustes:vAjustes}[tab]||vInicio)()}</main>
+ <nav class="tabs">${T('inicio','🏠','Inicio')}${T('pedidos','🧾','Pedidos',nv)}${T('mensajes','💬','Chat',nl)}${T('productos','📦','Productos')}${T('vendedores','🤝','Equipo')}${T('ajustes','⚙️','Ajustes')}</nav>`;
+ const m=$('#msgs');if(m)m.scrollTop=m.scrollHeight;if(keep!==null&&$('#txt')){$('#txt').value=keep;$('#txt').focus()}}
+function cambiar(b){location.href=BASE+'panel/?n='+b}
+onNuevo=(ms,ps)=>{if(!ok)return;ps.forEach(p=>notify('🧾 Nuevo pedido',p.cliente.nombre+' · '+money(p.total)));ms.filter(m=>m.para==='negocio'&&!(ps.length&&m.pedido)).forEach(m=>notify('💬 '+(m.nom||'Cliente'),m.texto))};
+onRender=render;
+addEventListener('hashchange',()=>{const t=location.hash.slice(1);if(t&&t!==tab){tab=t;render()}});
+render();
+if(ok)iniciar();else cargarCatalogo().then(render).catch(()=>{});
+</script>
+</body>
+</html>

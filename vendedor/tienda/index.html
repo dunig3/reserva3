@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07070a">
+<title>Tienda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+<link rel="manifest" href="../manifest.json">
+</head>
+<body>
+<nav class="top" id="nav"><div class="wrap"><a class="brand" href="#"><i id="bEmoji">✨</i><span id="bName">Tienda</span></a><span class="sp"></span><a class="btn sm" href="#productos">Comprar</a></div></nav>
+
+<header class="hero">
+  <div class="bg" id="heroBg"></div><div class="shade"></div><canvas id="sparks"></canvas>
+  <div class="wrap in">
+    <span class="kicker"><b></b> Abierto · pedidos en línea</span>
+    <h1><span id="hName">Tienda</span><br><span class="gtxt" id="hLema">Lo mejor, para ti</span></h1>
+    <p class="lead">Elige, pide y paga desde tu teléfono. Te confirmamos al instante por el chat de la tienda, sin salir de aquí.</p>
+    <div class="ctas"><a class="btn" href="#productos">🛍️ Ver productos</a><button class="btn ghost" onclick="abrirChat()">💬 Escribirnos</button></div>
+    <div class="trust"><div><b>⚡ 2 min</b>para pedir</div><div><b>🔒 Seguro</b>pago a tu manera</div><div><b>🚚 Rápido</b>entrega local</div></div>
+  </div>
+</header>
+
+<div class="marquee"><div class="tr" id="mq"></div></div>
+
+<section id="productos"><div class="wrap">
+  <div class="sh reveal"><h2>Nuestros <span class="gtxt">favoritos</span></h2><p id="refTxt">Toca “Agregar” y arma tu pedido</p></div>
+  <div class="prods" id="prods"></div>
+</div></section>
+
+<section style="background:var(--bg2)"><div class="wrap">
+  <div class="sh reveal"><h2>Así de <span class="gtxt">fácil</span></h2></div>
+  <div class="feats">
+    <div class="ft reveal"><span class="ic">🛒</span><h3>1. Elige</h3><p>Agrega tus productos al carrito con un toque.</p></div>
+    <div class="ft reveal"><span class="ic">📝</span><h3>2. Pide</h3><p>Escribe tu nombre, dirección y forma de pago.</p></div>
+    <div class="ft reveal"><span class="ic">💬</span><h3>3. Conversa</h3><p>Te respondemos por el chat de la tienda con aviso sonoro.</p></div>
+    <div class="ft reveal"><span class="ic">🎉</span><h3>4. Disfruta</h3><p>Recibe tu pedido y sigue su estado en tiempo real.</p></div>
+  </div>
+</div></section>
+
+<footer><span class="gtxt" style="font-weight:700" id="fName"></span><br>Tienda creada con Vendedor Automático</footer>
+
+<div class="fab"><button onclick="abrirChat()" id="fChat">💬<span class="ct" id="cChat"></span></button><button onclick="abrirCarrito()" id="fCart">🛍️<span class="ct" id="cCart"></span></button></div>
+
+<div class="drawer" id="dCart"><div class="ov" onclick="cerrar()"></div><div class="pn">
+  <header><h3>Tu pedido</h3><button class="x" onclick="cerrar()">✕</button></header>
+  <div class="ct2" id="cartBody"></div></div></div>
+
+<div class="drawer" id="dChat"><div class="ov" onclick="cerrar()"></div><div class="pn">
+  <header><h3 id="chatTit">Chat</h3><button class="x" onclick="cerrar()">✕</button></header>
+  <div class="msgs" id="msgs"></div>
+  <div class="send" id="sendBox"><input id="txt" placeholder="Escribe un mensaje…" onkeydown="if(event.key==='Enter')mandar()"><button class="btn" onclick="mandar()">➤</button></div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+<script src="../core.js"></script>
+<script>
+/* Tienda del cliente — ahora en línea (Supabase). Mismo diseño y flujo que la demo. */
+const ref=QS.get('ref');if(ref)localStorage.setItem('va_ref_'+BIZ,ref.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12));
+let cart=JSON.parse(sessionStorage.getItem('va_cart_'+BIZ)||'{}');
+let cliente=JSON.parse(localStorage.getItem('va_cliente')||'null');
+/* El id del cliente es un UUID aleatorio y secreto: es su "llave" para ver su chat y sus pedidos */
+const esUUID=x=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x||'');
+const nuevoId=()=>crypto.randomUUID?crypto.randomUUID():'10000000-1000-4000-8000-100000000000'.replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
+if(cliente&&!esUUID(cliente.id)){cliente.id=nuevoId();localStorage.setItem('va_cliente',JSON.stringify(cliente))}
+let misPedidos=[],ultMsg=0,rt=null,cargando=false;
+const saveCart=()=>sessionStorage.setItem('va_cart_'+BIZ,JSON.stringify(cart));
+function pintarCabecera(){const n=N();if(!n)return;document.title=n.nombre;['bName','hName','fName'].forEach(i=>$('#'+i).textContent=n.nombre);
+ $('#bEmoji').textContent=n.emoji;$('#hLema').textContent=n.lema||'';$('#heroBg').style.backgroundImage=`url(${img(n.hero)})`;
+ const ims=(n.productos||[]).map(p=>`<img src="${img(p.img)}" alt="" loading="lazy">`).join('');$('#mq').innerHTML=(ims+ims+ims+ims);
+ const r=localStorage.getItem('va_ref_'+BIZ);if(r)$('#refTxt').textContent='Te atiende el asesor '+r+' · toca “Agregar”';}
+function pintarProductos(){const ps=(N()&&N().productos)||[];
+ /* quitar del carrito productos que ya no existen */
+ Object.keys(cart).forEach(id=>{if(N()&&N().productos&&!ps.some(p=>p.id===id))delete cart[id]});
+ $('#prods').innerHTML=ps.length?ps.map(p=>`<div class="pc reveal on"><div class="ph"><img src="${img(p.img)}" alt="${esc(p.n)}" loading="lazy"></div>
+ <div class="bd"><h3>${esc(p.n)}</h3><small>${esc(p.d||'')}</small><div class="pr gtxt">${money(p.p)}</div>
+ ${cart[p.id]?`<div class="qty"><button onclick="q('${p.id}',-1)">−</button><b>${cart[p.id]}</b><button onclick="q('${p.id}',1)">+</button></div>`:`<button class="btn sm full" onclick="q('${p.id}',1)">Agregar</button>`}</div></div>`).join('')
+ :`<p class="mut" style="grid-column:1/-1;text-align:center">${cargando?'Cargando productos…':'Pronto tendremos productos aquí ✨'}</p>`;
+ const c=Object.values(cart).reduce((a,b)=>a+b,0);$('#cCart').textContent=c||'';}
+function q(id,d){cart[id]=Math.max(0,Math.min(99,(cart[id]||0)+d));if(!cart[id])delete cart[id];saveCart();pintarProductos();
+ if(d>0){$('#fCart').classList.remove('ring');void $('#fCart').offsetWidth;$('#fCart').classList.add('ring')}if($('#dCart').classList.contains('open'))abrirCarrito()}
+function items(){const n=N();return Object.entries(cart).map(([id,qn])=>{const p=(n.productos||[]).find(x=>x.id===id);return p?{...p,q:qn}:null}).filter(Boolean)}
+function abrirCarrito(){const it=items(),n=N(),tot=it.reduce((s,i)=>s+i.p*i.q,0);
+ $('#cartBody').innerHTML=it.length?it.map(i=>`<div class="li"><img src="${img(i.img)}"><div><b>${esc(i.n)}</b><br><span class="mut">${i.q} × ${money(i.p)}</span></div>
+  <div class="qty" style="flex:0 0 auto;gap:6px"><button onclick="q('${i.id}',-1)">−</button><b>${i.q}</b><button onclick="q('${i.id}',1)">+</button></div></div>`).join('')+
+  `<div class="tot"><span>Total</span><span class="gtxt">${money(tot)}</span></div>
+  <label>Nombre</label><input id="cN" maxlength="60" value="${esc(cliente?.nombre)}" placeholder="Tu nombre">
+  <label>Teléfono</label><input id="cT" maxlength="30" value="${esc(cliente?.tel)}" inputmode="tel" placeholder="0414…">
+  <label>Dirección o sector</label><input id="cD" maxlength="160" value="${esc(cliente?.dir)}" placeholder="Sector, calle, referencia">
+  <label>Método de pago</label><select id="cP" onchange="camposPago()"><option value="">Seleccione…</option>${(n.cuentas||[]).filter(c=>c.activo).map(c=>`<option value="${esc(c.id)}">${esc(c.nombre)}</option>`).join('')}</select>
+  <div id="pagoInfo" class="pinfo hide"></div>
+  <div id="pagoRef" class="hide"><label>Número de referencia</label><input id="cR" maxlength="40" inputmode="numeric" placeholder="Código de referencia del pago">
+  <label>Foto del comprobante (opcional)</label><input id="cF" type="file" accept="image/*"></div>
+  <div id="pagoObs" class="hide"><label>Código del promotor</label><input id="cO" maxlength="12" placeholder="Ej. ANA01" value="${esc(localStorage.getItem('va_ref_'+BIZ)||'')}" style="text-transform:uppercase">
+  <label>Código de cobro (te lo da el promotor al recibir el efectivo)</label><input id="cK" inputmode="numeric" maxlength="6" placeholder="6 dígitos" style="letter-spacing:4px"></div>
+  <button class="btn full" id="bPedir" onclick="pedir()">Confirmar pedido · ${money(tot)}</button>`
+  :'<p class="mut" style="text-align:center;padding:40px 0">Tu carrito está vacío 🛍️</p>';
+ $('#dChat').classList.remove('open');$('#dCart').classList.add('open')}
+function camposPago(){const id=$('#cP').value,c=(N().cuentas||[]).find(x=>x.id===id);
+ $('#pagoInfo').classList.toggle('hide',!c);$('#pagoRef').classList.toggle('hide',!c||id==='efectivo');$('#pagoObs').classList.toggle('hide',id!=='efectivo');
+ if(!c)return;const f=Object.entries(c.campos||{}).filter(([k,v])=>v);
+ $('#pagoInfo').innerHTML=`<b class="gtxt">Datos para ${esc(c.nombre)}</b>`+(id==='efectivo'?'<p>💵 Entrega el efectivo al promotor. Él registra el cobro en su app y te da un código de 6 dígitos de un solo uso. Escríbelo abajo con su código de promotor.</p>':
+  f.map(([k,v])=>`<div class="pf"><span>${esc(k)}:</span><b>${esc(v)}</b><button data-v="${esc(v)}" data-k="${esc(k)}" onclick="copiar(this)">📋</button></div>`).join('')+
+  '<p class="mut" style="margin-top:6px">Haz el pago y escribe abajo el número de referencia. El negocio lo verifica y acepta tu pedido.</p>')}
+function copiar(b){navigator.clipboard&&navigator.clipboard.writeText(b.dataset.v);toast(b.dataset.k+' copiado')}
+function cerrar(){document.querySelectorAll('.drawer').forEach(d=>d.classList.remove('open'))}
+function asegCliente(nombre,tel,dir){cliente=cliente||{id:nuevoId()};Object.assign(cliente,{nombre,tel,dir});localStorage.setItem('va_cliente',JSON.stringify(cliente));conectarCliente()}
+async function pedir(){const nombre=$('#cN').value.trim(),tel=$('#cT').value.trim(),dir=$('#cD').value.trim(),pid=$('#cP').value,cta=(N().cuentas||[]).find(x=>x.id===pid);
+ if(!nombre||!tel||!dir)return toast('Completa nombre, teléfono y dirección');
+ if(!cta)return toast('Selecciona un método de pago');let promo=null,cobro=null,refPago='',foto=null;
+ if(pid==='efectivo'){promo=$('#cO').value.trim().toUpperCase();cobro=$('#cK').value.trim();
+  if(!promo){$('#cO').focus();return toast('Escribe el código del promotor')}
+  if(!/^\d{6}$/.test(cobro)){$('#cK').focus();return toast('Escribe el código de cobro de 6 dígitos')}}
+ else{refPago=$('#cR').value.trim();if(!refPago){$('#cR').focus();return toast('Ingresa el número de referencia del pago')}foto=$('#cF').files[0]||null}
+ const btn=$('#bPedir');btn.disabled=true;btn.textContent='Enviando…';
+ try{
+  let blob=null;if(foto)blob=await comprimirImagen(foto,{max:1000,q:0.7,kb:120}); /* comprobante: máx. 1000 px */
+  asegCliente(nombre,tel,dir);
+  /* El servidor valida todo y calcula el total con sus propios precios */
+  const r=await rpc('va_crear_pedido',{p_biz:BIZ,p_cliente:cliente.id,p_nombre:nombre,p_tel:tel,p_dir:dir,
+   p_items:items().map(i=>({id:i.id,q:i.q})),p_cuenta:pid,p_ref_pago:refPago,p_promo:promo,p_cobro:cobro,
+   p_ref:localStorage.getItem('va_ref_'+BIZ)||null,p_comprobante:!!blob});
+  if(pid==='efectivo')localStorage.setItem('va_ref_'+BIZ,promo);
+  if(blob&&r.subida){try{const path=await subirImagen(blob,r.subida);await rpc('va_adjuntar_comprobante',{p_biz:BIZ,p_cliente:cliente.id,p_cod:r.cod,p_path:path})}catch(e){toast('Pedido enviado, pero la foto no se pudo subir')}}
+  cart={};saveCart();pintarProductos();toast('¡Pedido '+r.cod+' enviado! 🎉');abrirChat();sincCliente(true)
+ }catch(e){toast(e.message);btn.disabled=false;btn.textContent='Confirmar pedido'}}
+function abrirChat(){$('#dCart').classList.remove('open');$('#dChat').classList.add('open');if(N())$('#chatTit').textContent=N().emoji+' '+N().nombre;pintarChat();if(cliente)sincCliente(true)}
+const misMsgs=()=>cliente?DB.mensajes.filter(m=>m.biz===BIZ&&(m.de===cliente.id||m.para===cliente.id)):[];
+function pintarChat(){const box=$('#msgs');
+ if(!cliente){box.innerHTML=`<div style="margin:auto;text-align:center;max-width:280px"><p class="mut">Escribe tu nombre para hablar con ${esc(N()?N().nombre:'la tienda')}.</p><input id="cN2" maxlength="60" placeholder="Tu nombre"><button class="btn full" onclick="iniciar()">Empezar chat</button></div>`;$('#sendBox').classList.add('hide');return}
+ $('#sendBox').classList.remove('hide');
+ const ms=misMsgs();
+ /* estado en vivo de mis pedidos */
+ const ped=misPedidos.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;padding:0 0 8px;border-bottom:1px solid var(--line);margin-bottom:8px">${misPedidos.slice(0,4).map(p=>`<span class="pill ${esc(p.estado)}" title="${money(p.total)}">${esc(p.cod)} · ${esc(p.estado)}</span>`).join('')}</div>`:'';
+ box.innerHTML=ped+(ms.map(m=>`<div class="m ${m.de===cliente.id?'yo':'el'}">${esc(m.texto)}<small>${hora(m.t)}${m.pedido?' · '+esc(m.pedido):''}</small></div>`).join('')||'<p class="mut" style="margin:auto">Escríbenos, respondemos rápido ✨</p>');
+ box.scrollTop=box.scrollHeight;badge()}
+function iniciar(){const n=$('#cN2').value.trim();if(!n)return;asegCliente(n,'','');pintarChat()}
+async function mandar(){const t=$('#txt').value.trim();if(!t)return;$('#txt').value='';
+ try{await rpc('va_cliente_enviar',{p_biz:BIZ,p_cliente:cliente.id,p_nombre:cliente.nombre,p_texto:t.slice(0,1000)});sincCliente(true)}
+ catch(e){toast(e.message);$('#txt').value=t}}
+function badge(){const n=cliente?DB.mensajes.filter(m=>m.biz===BIZ&&m.para===cliente.id&&!m.leido).length:0;$('#cChat').textContent=n||''}
+/* Trae solo lo nuevo de MI chat y el estado de mis pedidos */
+let _primera=true;
+async function sincCliente(leer){if(!cliente)return;const abierto=$('#dChat').classList.contains('open');
+ const r=await rpc('va_cliente_sync',{p_biz:BIZ,p_cliente:cliente.id,p_desde:ultMsg,p_leer:!!(leer||abierto)});
+ const nuevos=r.mensajes.filter(m=>!DB.mensajes.some(x=>x.id===m.id));
+ if(abierto)DB.mensajes.forEach(m=>{if(m.para===cliente.id)m.leido=true});
+ DB.mensajes.push(...nuevos);if(nuevos.length)ultMsg=Math.max(ultMsg,...nuevos.map(m=>m.id));
+ const cambioPed=JSON.stringify(r.pedidos)!==JSON.stringify(misPedidos);misPedidos=r.pedidos;
+ if(!_primera)onNuevo(nuevos.filter(m=>m.de==='negocio'),[]);_primera=false;
+ if(nuevos.length||cambioPed)onRender()}
+function conectarCliente(){if(rt||!cliente)return;rt=escuchar('va:c:'+cliente.id,()=>sincCliente(false))}
+onNuevo=(ms)=>{if(!cliente)return;ms.filter(m=>m.para===cliente.id).forEach(m=>{notify(N().nombre,m.texto);$('#fChat').classList.remove('ring');void $('#fChat').offsetWidth;$('#fChat').classList.add('ring')})};
+onRender=()=>{if($('#dChat').classList.contains('open'))pintarChat();else badge()};
+/* chispas doradas animadas */
+(function(){const c=$('#sparks'),x=c.getContext('2d');let W,H,P=[];function rs(){W=c.width=c.offsetWidth*devicePixelRatio;H=c.height=c.offsetHeight*devicePixelRatio}rs();addEventListener('resize',rs);
+ for(let i=0;i<70;i++)P.push({x:Math.random(),y:Math.random(),r:Math.random()*2+.6,s:Math.random()*.0015+.0005,a:Math.random()*6});
+ (function f(){x.clearRect(0,0,W,H);P.forEach(p=>{p.y-=p.s;p.a+=.03;if(p.y<0){p.y=1;p.x=Math.random()}const al=.4+.6*Math.abs(Math.sin(p.a));
+  const g=x.createRadialGradient(p.x*W,p.y*H,0,p.x*W,p.y*H,p.r*6*devicePixelRatio);g.addColorStop(0,`rgba(255,225,120,${al})`);g.addColorStop(1,'rgba(255,180,0,0)');
+  x.fillStyle=g;x.beginPath();x.arc(p.x*W,p.y*H,p.r*6*devicePixelRatio,0,7);x.fill()});requestAnimationFrame(f)})()})();
+addEventListener('scroll',()=>$('#nav').classList.toggle('solid',scrollY>40));
+const io=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('on')),{threshold:.15});document.querySelectorAll('.reveal').forEach(e=>io.observe(e));
+/* Arranque: pinta lo que hay en caché y revalida el catálogo */
+cargando=!(N()&&N().productos);if(N())pintarCabecera();pintarProductos();badge();
+cargarCatalogo().then(()=>{cargando=false;pintarCabecera();pintarProductos()}).catch(e=>{cargando=false;pintarProductos();toast(e.message)});
+conectarCliente();
+</script>
+</body>
+</html>

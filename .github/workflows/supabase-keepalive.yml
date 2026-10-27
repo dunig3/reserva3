@@ -1,0 +1,38 @@
+# Mantiene despierto el proyecto Supabase (plan gratis se pausa tras 7 días sin actividad).
+# Hace una consulta mínima (RPC va_ping) cada 2 días. Usa la clave PÚBLICA anon
+# (la misma que ya está en vendedor/core.js). Si prefieres, crea los secretos del repo
+# SUPABASE_URL y SUPABASE_ANON_KEY y se usarán en lugar de los valores por defecto.
+name: Supabase keep-alive
+on:
+  schedule:
+    - cron: '23 10 */2 * *'   # cada 2 días, 10:23 UTC
+  workflow_dispatch: {}
+permissions:
+  actions: write   # para re-activar este workflow (GitHub apaga los programados tras 60 días sin commits)
+  contents: read
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://xcaasrvlpyxfjeyqhyve.supabase.co' }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjYWFzcnZscHl4ZmpleXFoeXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1MDg5OTYsImV4cCI6MjEwMTA4NDk5Nn0.27I4TF1oeZqVsBCcKpyrwF0EeWQ5EKQzcsTzO1T4qVM' }}
+    steps:
+      - name: Ping a la base de datos (REST)
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -s -o /tmp/r.txt -w '%{http_code}' -X POST "$SUPABASE_URL/rest/v1/rpc/va_ping" \
+              -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY" -H "Content-Type: application/json" -d '{}')
+            echo "Intento $i -> HTTP $code: $(cat /tmp/r.txt)"
+            [ "$code" = "200" ] && break
+            sleep 20
+          done
+          # También lee 1 fila del catálogo (actividad real en la API)
+          curl -s -o /dev/null -w 'catálogo HTTP %{http_code}\n' "$SUPABASE_URL/rest/v1/va_negocios?select=slug&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY"
+          [ "$code" = "200" ]
+      - name: Evitar que GitHub desactive este workflow por inactividad
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/supabase-keepalive.yml/enable" || true
